@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Database & Prisma Schema | ITB-CSV Explained</title>
+  <title>Database (แยกตาม Sprint + ภาพรวม) | ITB-CSV Explained</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
@@ -16,13 +16,25 @@
   <main>
 
     <section class="hero">
-      <div class="kicker">LAYER DEEP DIVE · DATABASE</div>
-      <h1>🗄️ Database &amp; Prisma — 11 ตารางจาก Sprint 1 ถึง Sprint 3</h1>
-      <p class="lead">MySQL 8.4 (<code>utf8mb4_unicode_ci</code>) ชื่อฐานข้อมูล <code>zap_setdb</code> ออกแบบให้เก็บข้อมูลตรงตาม Test Data เป๊ะทุก ID (TR-07) และ <b>ไม่เก็บข้อมูลส่วนตัวนักศึกษา</b> (TR-04)</p>
+      <div class="kicker">LAYER DEEP DIVE · DATABASE &amp; PRISMA (SPRINT 1–3 + OVERVIEW)</div>
+      <h1>🗄️ Database &amp; Prisma — แยกเจาะลึกทีละ Sprint + ภาพรวม</h1>
+      <p class="lead">MySQL 8.4 (<code>utf8mb4_unicode_ci</code>) ชื่อฐานข้อมูล <code>zap_setdb</code> เติบโตจาก <b>2 ตาราง → 5 ตาราง → 11 ตาราง</b> (พร้อม 1,181 คาบเรียนใน <code>sessions</code>) โดยยึดกฎ <b>TR-03</b> (UTF-8), <b>TR-04</b> (ไม่เก็บข้อมูลนักศึกษา) และ <b>TR-07</b> (ตรง Test Data เป๊ะทุก ID)</p>
       <p><span class="badge db">11 Tables</span> <span class="badge db">1,181 Sessions</span> <span class="badge db">utf8mb4</span> <span class="badge be">Prisma 6</span></p>
+      <div class="jump-bar">
+        <a href="#overview">📌 ภาพรวม &amp; ER Diagram</a>
+        <a href="#db-s1">1️⃣ Sprint 1 (2 ตารางแรก)</a>
+        <a href="#db-s2">2️⃣ Sprint 2 (+3 ตาราง)</a>
+        <a href="#db-s3">3️⃣ Sprint 3 (+6 ตาราง &amp; 1,181 Sessions)</a>
+        <a href="#summary">🔁 สรุปไฟล์ SQL, Prisma &amp; ทางเลือก</a>
+      </div>
     </section>
 
-    <h2 id="er">แผนผังความสัมพันธ์ทั้งหมด (ER Diagram — ครบ 11 ตาราง)</h2>
+    <!-- ================= OVERVIEW ================= -->
+    <div class="sprint-banner ov">
+      <h2 id="overview">📌 ภาพรวมฐานข้อมูลทั้งหมด (ER Diagram ครบ 11 ตาราง)</h2>
+      <p>มองครั้งเดียวเห็นครบทั้ง 11 ตาราง, Primary Key, Foreign Key และความสัมพันธ์ 1:N / M:N ของทั้งระบบ</p>
+    </div>
+
     <pre class="mermaid">
 erDiagram
   courses ||--o{ courses_schedule : "1:N"
@@ -114,45 +126,73 @@ erDiagram
       <p style="margin-top:12px"><img src="assets/img/er-diagram.png" alt="ER Diagram ต้นฉบับจาก db_design" style="border-radius:10px;border:1px solid var(--line)"></p>
     </details>
 
-    <h2 id="evolution">วิวัฒนาการของตารางในแต่ละ Sprint</h2>
+    <!-- ================= SPRINT 1 ================= -->
+    <div class="sprint-banner s1">
+      <h2 id="db-s1">1️⃣ Sprint 1 — ตารางหลักของหลักสูตร (2 ตาราง)</h2>
+      <p>เป้าหมาย: เก็บรายวิชา (51 แถว) และตารางเรียนรายสัปดาห์ (92 แถว) พร้อม Constraint กันข้อมูลผิดและ UTF-8 เต็มระบบ</p>
+    </div>
+
+    <div class="grid c2">
+      <div class="card db">
+        <h4><code>courses</code> (51 แถว)</h4>
+        <ul class="small">
+          <li><code>id INT PRIMARY KEY</code> (ไม่ใช้ AUTO_INCREMENT เพื่อยึดตาม Test Data IDs)</li>
+          <li><code>UNIQUE (code, title)</code> เพราะรหัสวิชาอย่าง INT403, INT521, INT540 มีหลายหัวข้อ (code อย่างเดียวซ้ำได้)</li>
+          <li><code>CHECK (year_level BETWEEN 1 AND 4)</code></li>
+        </ul>
+      </div>
+      <div class="card db">
+        <h4><code>courses_schedule</code> (92 แถว → เพิ่มเป็น 97 ใน Sprint 3)</h4>
+        <ul class="small">
+          <li><code>FK course_id → courses(id)</code></li>
+          <li><code>day_of_week ENUM('MONDAY'..'SUNDAY')</code> — MySQL เรียงลำดับตาม ENUM (จันทร์ก่อน)</li>
+          <li><code>room</code> เก็บใน DB แต่ <b>ไม่ส่งออกใน API ของ Guest</b></li>
+          <li><code>CHECK (start_week &lt;= end_week)</code> และ <code>CHECK (start_time &lt; end_time)</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout warn"><span class="t">⚠️ กฎเหล็ก UTF-8 ขาเข้า (บทเรียนจาก Sprint 1 Snapshot)</span>
+      ใน <span class="file db">database/init.sql</span> ทีมใส่ <code>SET NAMES utf8mb4;</code> ไว้บนสุดเสมอ เพื่อไม่ให้เครื่องหมาย en-dash (<code>Jul 26–Aug 23</code>) และชื่อวันหยุดภาษาไทยใน Sprint 3 เพี้ยนเป็น <code>â€“</code> ตอน import</div>
+
+    <!-- ================= SPRINT 2 ================= -->
+    <div class="sprint-banner s2">
+      <h2 id="db-s2">2️⃣ Sprint 2 — ระบบนักศึกษา &amp; การเลือกวิชา (+3 ตาราง)</h2>
+      <p>เป้าหมาย: ตรวจสอบตัวตนนักศึกษาจากรหัส 11 หลักโดยไม่เก็บตาราง <code>students</code> (TR-04) และเก็บวิชาที่นักศึกษาเลือก (<code>selections</code>)</p>
+    </div>
+
     <div class="table-wrap">
       <table class="t">
-        <thead><tr><th>Sprint</th><th>ตาราง</th><th>จำนวนแถว (Seed)</th><th>Key &amp; Constraint สำคัญ</th><th>หน้าที่</th></tr></thead>
+        <thead><tr><th>ตารางใหม่</th><th>จำนวนแถว</th><th>Key &amp; Constraint</th><th>บทบาทในระบบ</th></tr></thead>
         <tbody>
-          <tr><td rowspan="2"><span class="badge fe">Sprint 1</span></td><td><code>courses</code></td><td>51</td><td>PK <code>id</code>, UNIQUE <code>(code, title)</code></td><td>รายวิชาในเทอม</td></tr>
-          <tr><td><code>courses_schedule</code></td><td>92 → <b>97</b></td><td>PK <code>id</code>, FK <code>course_id</code>, CHECK <code>start_time &lt; end_time</code></td><td>คาบเรียนรายสัปดาห์ (Sprint 3 เพิ่มแถว 93–97)</td></tr>
-          <tr><td rowspan="3"><span class="badge be">Sprint 2</span></td><td><code>academic_settings</code></td><td>1</td><td>CHECK <code>id = 1</code> (Singleton table)</td><td>ปีการศึกษา 2569, รหัสหลักสูตร 504504, วันเปิด-ปิดเทอม</td></tr>
-          <tr><td><code>student_group_ranges</code></td><td>8</td><td>UNIQUE <code>(entry_year, student_group)</code></td><td>ช่วงเลขท้ายนักศึกษา → Group A/B</td></tr>
-          <tr><td><code>selections</code></td><td>0 (ว่าง)</td><td>Composite PK <code>(student_id, course_id)</code></td><td>วิชาเลือกที่นักศึกษากด Select (1 คนเลือก 1 วิชาได้ 1 sec)</td></tr>
-          <tr><td rowspan="6"><span class="badge db">Sprint 3</span></td><td><code>lecturers</code></td><td>26</td><td>PK <code>id</code>, UNIQUE <code>username</code></td><td>รายชื่ออาจารย์ (PBI8)</td></tr>
-          <tr><td><code>schedule_lecturer</code></td><td>70+</td><td>Composite PK <code>(schedule_id, lecturer_id)</code></td><td>เชื่อม M:N ระหว่างคาบเรียนกับอาจารย์</td></tr>
-          <tr><td><code>academic_weeks</code></td><td>19</td><td>UNIQUE <code>start_date</code>, <code>teaching_week</code></td><td>สัปดาห์ W1–W15 + สัปดาห์สอบ Exam 1–3</td></tr>
-          <tr><td><code>holidays</code></td><td>7</td><td>UNIQUE <code>date</code></td><td>วันหยุดราชการ (ภาษาไทย — ใช้ UTF-8!)</td></tr>
-          <tr><td><code>exam_periods</code></td><td>3</td><td>CHECK <code>start_date &lt;= end_date</code></td><td>ช่วงสอบที่ใช้ตัด session ออก</td></tr>
-          <tr><td><code>sessions</code></td><td><b>1,181</b></td><td>PK <code>id</code>, UNIQUE <code>(schedule_id, date)</code></td><td>คาบเรียนระบุวันที่จริง สร้างด้วย SQL CTE</td></tr>
+          <tr><td><code>academic_settings</code></td><td>1</td><td><code>CHECK (id = 1)</code> (Singleton)</td><td>เก็บปีการศึกษา <code>2569</code>, เทอม <code>1</code>, รหัสหลักสูตร <code>504504</code> (`BSc.IT`)</td></tr>
+          <tr><td><code>student_group_ranges</code></td><td>8</td><td><code>UNIQUE (entry_year, student_group)</code><br><code>CHECK (from_no &lt;= to_no)</code></td><td>บอกช่วงเลขท้าย 3 หลักของแต่ละรุ่น (69, 68, 67, 66) ว่าอยู่ Group A หรือ Group B</td></tr>
+          <tr><td><code>selections</code></td><td>0 (เริ่มว่าง)</td><td>Composite PK <code>(student_id, course_id)</code><br><code>FK course_id → courses(id)</code></td><td>การันตีระดับ DB ว่า 1 คนเลือก 1 วิชาได้แค่ 1 section; เก็บ <code>created_at</code> และ <code>updated_at</code> เป็น <code>DATETIME(3)</code> (มิลลิวินาที)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">ไฟล์อัปเกรด: <span class="file db">db_design/sprint2_migration.sql</span> ใช้ <code>CREATE TABLE IF NOT EXISTS</code> และ <code>INSERT IGNORE</code> เพื่อรันบน VM ของ Sprint 1 ได้เลยโดยไม่ลบตารางเก่า</p>
+
+    <!-- ================= SPRINT 3 ================= -->
+    <div class="sprint-banner s3">
+      <h2 id="db-s3">3️⃣ Sprint 3 — อาจารย์, ปฏิทินการศึกษา &amp; 1,181 Sessions (+6 ตาราง)</h2>
+      <p>เป้าหมาย: เพิ่มข้อมูลอาจารย์แบบ M:N (PBI8), เพิ่มแถวตารางเรียน 93–97 สำหรับเทส Clash (PBI11), เพิ่มคอลัมน์วันเปิด-ปิดเทอม และสร้างตารางปฏิทินรายสัปดาห์ (PBI12)</p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>กลุ่ม</th><th>ตาราง / การเปลี่ยนแปลง</th><th>จำนวนแถว</th><th>จุดสำคัญ</th></tr></thead>
+        <tbody>
+          <tr><td><b>อัปเกรดเดิม</b></td><td><code>courses_schedule</code> (แถว 93–97)<br><code>academic_settings</code> (+2 คอลัมน์)</td><td>92 → <b>97</b><br>1</td><td>แถว 93–97 ใช้เทส Clash edge case (แตะเวลา, ชนเฉพาะกลุ่ม B, 2 วันชนแค่วันเดียว); เพิ่ม <code>semester_start_date</code> (`2026-08-03`) และ <code>semester_end_date</code> (`2026-12-12`)</td></tr>
+          <tr><td><b>PBI 8</b></td><td><code>lecturers</code><br><code>schedule_lecturer</code></td><td>26<br>70+</td><td><b>M:N Join Table</b> — เพราะอาจารย์สอนที่ <code>schedule</code> ไม่ใช่ที่ <code>course</code> (1 คาบมี 2 อาจารย์ได้ เช่น DSI111 และมีอาจารย์ 2 คนที่ไม่มีคาบสอนเทอมนี้)</td></tr>
+          <tr><td><b>PBI 12</b></td><td><code>academic_weeks</code><br><code>holidays</code><br><code>exam_periods</code></td><td>19<br>7<br>3</td><td>19 สัปดาห์ (W1–W15 + Exam 1–3), 7 วันหยุดภาษาไทย (ยังแสดงคาบแต่ติด Note), 3 ช่วงสอบ (ตัดคาบออกหมด เช่น จันทร์ 26/10/2026)</td></tr>
+          <tr><td><b>PBI 12 (สร้างเอง)</b></td><td><code>sessions</code></td><td><b>1,181</b></td><td><code>UNIQUE (schedule_id, date)</code> — สร้างอัตโนมัติด้วย SQL CTE + <code>ROW_NUMBER() OVER (ORDER BY date, start_time, schedule_id)</code></td></tr>
         </tbody>
       </table>
     </div>
 
-    <h2 id="files">ไฟล์ SQL อยู่ในไหนบ้าง? ต่างกันอย่างไร?</h2>
-    <div class="grid c2">
-      <div class="card db">
-        <h4><span class="file db">database/init.sql</span> (ไฟล์รันจริง)</h4>
-        <p class="small">รวมทุกอย่างไว้ในไฟล์เดียว: <code>DROP DATABASE</code> → สร้าง 11 ตาราง → Seed ครบทุกตาราง → รัน CTE สร้าง 1,181 sessions<br>
-        <b>ใครใช้:</b> Docker MySQL container (ตอนเริ่มใหม่) และ GitHub Actions CI</p>
-      </div>
-      <div class="card db">
-        <h4><span class="file db">db_design/*</span> (เอกสาร &amp; Migration)</h4>
-        <p class="small">
-          • <code>setdatabase.sql</code> — โครง CREATE TABLE ล้วน (11 ตาราง)<br>
-          • <code>db_*.sql</code> — ไฟล์ seed แยกตามตาราง (แก้/ตรวจง่าย)<br>
-          • <code>sprint2_migration.sql</code> &amp; <code>sprint3_migration.sql</code> — สคริปต์อัปเกรดแบบ <b>Idempotent</b> รันบน VM ที่มีข้อมูลเดิมอยู่แล้วได้โดยไม่ล้าง <code>selections</code>!
-        </p>
-      </div>
-    </div>
-
-    <h3 id="idempotent">เทคนิค Idempotent Migration ใน MySQL 8.4</h3>
-    <p>MySQL 8.4 ไม่มีคำสั่ง <code>ALTER TABLE ... ADD COLUMN IF NOT EXISTS</code> เหมือน MariaDB — ทีมจึงเขียนเช็คกับ <code>information_schema.COLUMNS</code> แล้วใช้ Dynamic SQL (<code>PREPARE / EXECUTE</code>) ใน <span class="file db">db_design/sprint3_migration.sql</span> เพื่อให้รันซ้ำกี่ครั้งก็ไม่พัง!</p>
+    <h3 id="idempotent">เทคนิค Idempotent Migration สำหรับ MySQL 8.4 (<code>sprint3_migration.sql</code>)</h3>
+    <p>MySQL 8.4 ไม่มีคำสั่ง <code>ALTER TABLE ... ADD COLUMN IF NOT EXISTS</code> ทีมจึงเขียนเช็คกับ <code>information_schema.COLUMNS</code> แล้วใช้ <code>PREPARE / EXECUTE</code> เพื่อให้รันสคริปต์อัปเกรดซ้ำกี่ครั้งก็ไม่พังและไม่ล้าง <code>selections</code> ของผู้ใช้:</p>
     <script type="text/x-code" data-lang="sql" data-path="db_design/sprint3_migration.sql">
       SET @has_semester_start := (
         SELECT COUNT(*) FROM information_schema.COLUMNS
@@ -165,27 +205,39 @@ erDiagram
       PREPARE stmt FROM @sql_add; EXECUTE stmt; DEALLOCATE PREPARE stmt;
     </script>
 
-    <h2 id="prisma">ความสัมพันธ์ระหว่าง MySQL กับ Prisma Schema</h2>
-    <p><span class="file db">backend/prisma/schema.prisma</span> ทำหน้าที่เป็น “ล่าม” ระหว่าง SQL (snake_case) กับ JavaScript (camelCase):</p>
-    <ul>
-      <li><code>@@map("courses_schedule")</code> → ชื่อตารางใน MySQL คือ <code>courses_schedule</code> แต่ใน JS เรียก <code>prisma.courseSchedule</code></li>
-      <li><code>@map("year_level")</code> → ชื่อคอลัมน์ใน MySQL คือ <code>year_level</code> แต่ใน JS อ่าน <code>course.yearLevel</code></li>
-      <li><code>@@id([studentId, courseId])</code> → สร้าง Composite Key ทำให้เรียก <code>where: { studentId_courseId: { studentId, courseId } }</code> ได้</li>
-      <li><b>ข้อควรจำ:</b> ทุกครั้งที่แก้ <code>schema.prisma</code> ต้องรัน <code>npx prisma generate</code> เพื่อให้ <code>@prisma/client</code> อัปเดต model ใหม่</li>
-    </ul>
+    <!-- ================= SUMMARY & ALTERNATIVES ================= -->
+    <div class="sprint-banner ov">
+      <h2 id="summary">🔁 สรุปภาพรวมไฟล์ SQL, Prisma Schema &amp; ทางเลือก</h2>
+      <p>เข้าใจบทบาทของทุกไฟล์ใน <code>database/</code>, <code>db_design/</code> และ <code>backend/prisma/</code></p>
+    </div>
 
-    <h2 id="alternatives">ทางเลือกอื่นในการออกแบบ Database</h2>
+    <div class="grid c3">
+      <div class="card db">
+        <h4><span class="file db">database/init.sql</span></h4>
+        <p class="small">ไฟล์เดียวจบ (Fresh setup): สร้าง DB + 11 ตาราง + Seed ครบ + รัน CTE สร้าง 1,181 sessions ใช้ใน Docker และ CI</p>
+      </div>
+      <div class="card db">
+        <h4><span class="file db">db_design/*</span></h4>
+        <p class="small"><code>setdatabase.sql</code>, <code>db_*.sql</code> (แยก seed รายตาราง), <code>data-dictionary.md</code> และ <code>sprint2/3_migration.sql</code> สำหรับอัปเกรด VM จริง</p>
+      </div>
+      <div class="card be">
+        <h4><span class="file db">prisma/schema.prisma</span></h4>
+        <p class="small">11 Models + 4 Enums แปลง snake_case ↔ camelCase ด้วย <code>@map</code> / <code>@@map</code> (ทุกครั้งที่แก้ต้องรัน <code>npx prisma generate</code>)</p>
+      </div>
+    </div>
+
+    <p class="alt-title">ทางเลือกอื่นในการออกแบบและจัดการ Database</p>
     <div class="tabs">
       <div class="tab-panel" data-label="Migration: SQL เขียนเอง vs Prisma Migrate">
         <div class="pc">
-          <div class="pro"><b>✅ SQL เขียนเอง (ปัจจุบัน)</b><ul><li>คุม CHECK constraint, ENUM, CTE สร้าง 1,181 sessions และ <code>SET NAMES utf8mb4</code> ได้ 100%</li><li>ใช้ไฟล์เดียวเป็น <code>/docker-entrypoint-initdb.d/init.sql</code> ได้เลย</li></ul></div>
-          <div class="con"><b>🔁 Prisma Migrate / Flyway</b><ul><li>สร้างประวัติ migration อัตโนมัติเป็นเวอร์ชัน ไม่ต้องเขียนเช็ค <code>information_schema</code> เอง</li><li>แต่ Prisma ยังไม่รองรับ <code>CHECK</code> constraint โดยตรง (ต้องแก้ไฟล์ SQL ที่ generate อยู่ดี)</li></ul></div>
+          <div class="pro"><b>✅ SQL เขียนเอง (ปัจจุบัน)</b><ul><li>คุม <code>CHECK</code> constraint, <code>ENUM</code>, CTE สร้าง 1,181 sessions และ <code>SET NAMES utf8mb4</code> ได้เป๊ะ 100%</li><li>โยนเข้า <code>/docker-entrypoint-initdb.d/init.sql</code> ได้ทันที</li></ul></div>
+          <div class="con"><b>🔁 Prisma Migrate / Flyway</b><ul><li>เก็บประวัติเวอร์ชัน migration อัตโนมัติ ไม่ต้องเขียนเช็ค <code>information_schema</code> เอง</li><li>แต่ Prisma ยังไม่รองรับ <code>CHECK</code> constraint ใน schema file</li></ul></div>
         </div>
       </div>
-      <div class="tab-panel" data-label="ตาราง sessions: เก็บจริง vs คำนวณสด">
+      <div class="tab-panel" data-label="ตาราง sessions: Materialized Table vs คำนวณสด">
         <div class="pc">
-          <div class="pro"><b>✅ เก็บเป็นตาราง sessions (ปัจจุบัน · ตรง TR-07)</b><ul><li>Query เร็วมาก (<code>WHERE date BETWEEN ? AND ?</code>)</li><li>พร้อมต่อยอด <b>Sprint 4 (PBI13–15)</b> ที่ต้องยกเลิกคาบ (Cancel) หรือเพิ่มคาบชดเชย (Make-up) เป็นรายวันที่!</li></ul></div>
-          <div class="con"><b>🔁 คำนวณสดทุกครั้งที่เรียก API</b><ul><li>ไม่ต้องเก็บ 1,181 แถว</li><li>แต่ไม่สามารถมี <code>session.id</code> คงที่ และทำ Cancel/Make-up รายคาบใน Sprint 4 ไม่ได้</li></ul></div>
+          <div class="pro"><b>✅ เก็บเป็นตาราง <code>sessions</code> (ปัจจุบัน · ตรง TR-07)</b><ul><li>Query เร็วมาก (<code>WHERE date BETWEEN ? AND ?</code>)</li><li>พร้อมรับ <b>Sprint 4 (PBI 13–15)</b> ที่ต้อง Cancel คาบ หรือเพิ่ม Make-up session รายวัน!</li></ul></div>
+          <div class="con"><b>🔁 คำนวณสดจาก schedule + calendar ทุกครั้ง</b><ul><li>ไม่ต้องเก็บ 1,181 แถว</li><li>แต่ไม่มี <code>session.id</code> คงที่ และทำ Cancel / Make-up รายวันไม่ได้</li></ul></div>
         </div>
       </div>
     </div>

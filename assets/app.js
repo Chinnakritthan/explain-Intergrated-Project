@@ -1,8 +1,9 @@
 // ==========================================================
 // ITB-CSV Explained — shared site script (no framework)
+// - theme switcher (Light / Dark) + font size switcher (A- / A / A+)
 // - injects top bar, footer, TOC, pager
 // - turns <script type="text/x-code"> into highlighted code blocks
-// - tabs, steppers, copy buttons, mermaid diagrams
+// - tabs, steppers, copy buttons, dynamic light/dark mermaid diagrams
 // ==========================================================
 
 const PAGES = [
@@ -19,6 +20,47 @@ const PAGES = [
 ];
 
 const page = document.body.dataset.page || 'home';
+const HL_LIGHT = 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css';
+const HL_DARK  = 'https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css';
+
+// ---------- theme & font preferences ----------
+let currentTheme = localStorage.getItem('itbcsv-theme') || 'light';
+let currentFont  = localStorage.getItem('itbcsv-font')  || 'md';
+let mermaidModule = null;
+
+function applyTheme(theme, rerenderMermaid = false) {
+  currentTheme = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.dataset.theme = currentTheme;
+  localStorage.setItem('itbcsv-theme', currentTheme);
+
+  // Swap highlight.js stylesheet to match light/dark
+  const hlLink = [...document.querySelectorAll('link[rel="stylesheet"]')]
+    .find(l => l.href.includes('highlightjs') && l.href.includes('/styles/'));
+  if (hlLink) {
+    hlLink.href = currentTheme === 'dark' ? HL_DARK : HL_LIGHT;
+  }
+
+  const btn = document.getElementById('theme-toggle-btn');
+  if (btn) {
+    btn.innerHTML = currentTheme === 'dark' ? '☀️ Light' : '🌙 Dark';
+    btn.title = currentTheme === 'dark' ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด';
+  }
+
+  if (rerenderMermaid) renderMermaid();
+}
+
+function applyFont(size) {
+  currentFont = ['sm', 'md', 'lg'].includes(size) ? size : 'md';
+  document.documentElement.dataset.font = currentFont;
+  localStorage.setItem('itbcsv-font', currentFont);
+  document.querySelectorAll('.font-group button').forEach(b => {
+    b.classList.toggle('active', b.dataset.size === currentFont);
+  });
+}
+
+// Apply immediately before layout paints
+applyTheme(currentTheme, false);
+applyFont(currentFont);
 
 // ---------- top bar ----------
 function buildTopbar() {
@@ -32,10 +74,29 @@ function buildTopbar() {
       <span class="logo">⚡</span>
       <span>ITB-CSV Explained<small>INT504 · Team zap (Group 43)</small></span>
     </a>
-    <button class="menu-btn" aria-label="เมนู">☰</button>
-    <nav class="nav">${links}</nav>`;
+    <nav class="nav">${links}</nav>
+    <div class="controls">
+      <div class="font-group" role="group" aria-label="ปรับขนาดตัวอักษร">
+        <button type="button" data-size="sm" title="ฟอนต์ขนาดเล็ก">A-</button>
+        <button type="button" data-size="md" title="ฟอนต์ขนาดปกติ">A</button>
+        <button type="button" data-size="lg" title="ฟอนต์ขนาดใหญ่">A+</button>
+      </div>
+      <button class="theme-btn" id="theme-toggle-btn" type="button" aria-label="สลับธีม Light/Dark"></button>
+      <button class="menu-btn" aria-label="เมนู">☰</button>
+    </div>`;
   document.body.prepend(bar);
+
   bar.querySelector('.menu-btn').addEventListener('click', () => bar.querySelector('.nav').classList.toggle('open'));
+  bar.querySelector('#theme-toggle-btn').addEventListener('click', () => {
+    applyTheme(currentTheme === 'dark' ? 'light' : 'dark', true);
+  });
+  bar.querySelectorAll('.font-group button').forEach(b => {
+    b.addEventListener('click', () => applyFont(b.dataset.size));
+  });
+
+  // Sync labels & active states
+  applyTheme(currentTheme, false);
+  applyFont(currentFont);
 }
 
 // ---------- footer + pager ----------
@@ -195,17 +256,43 @@ function buildToc() {
   heads.forEach(h => obs.observe(h));
 }
 
-// ---------- mermaid ----------
-async function buildMermaid() {
-  if (!document.querySelector('.mermaid')) return;
+// ---------- mermaid (supports dynamic Light / Dark re-render) ----------
+async function renderMermaid() {
+  const blocks = [...document.querySelectorAll('.mermaid')];
+  if (!blocks.length) return;
   try {
-    const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
-    mermaid.initialize({
+    if (!mermaidModule) {
+      const mod = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
+      mermaidModule = mod.default;
+    }
+    // Preserve raw definition so toggling theme can cleanly re-render
+    blocks.forEach(el => {
+      if (!el.dataset.mermaidSrc) {
+        el.dataset.mermaidSrc = el.textContent;
+      } else {
+        el.removeAttribute('data-processed');
+        el.textContent = el.dataset.mermaidSrc;
+      }
+    });
+
+    const isDark = currentTheme === 'dark';
+    mermaidModule.initialize({
       startOnLoad: false,
       theme: 'base',
       securityLevel: 'loose',
       fontFamily: 'Inter, IBM Plex Sans Thai, sans-serif',
-      themeVariables: {
+      themeVariables: isDark ? {
+        background: '#18181c',
+        primaryColor: '#242429',
+        primaryBorderColor: '#3f3f46',
+        primaryTextColor: '#f4f4f5',
+        secondaryColor: '#1f1f24',
+        tertiaryColor: '#27272a',
+        lineColor: '#a1a1aa',
+        clusterBkg: '#1e1e23',
+        clusterBorder: '#3f3f46',
+        edgeLabelBackground: '#1c1c20',
+      } : {
         background: '#fafafa',
         primaryColor: '#ffffff',
         primaryBorderColor: '#d4d4d8',
@@ -218,7 +305,7 @@ async function buildMermaid() {
         edgeLabelBackground: '#ffffff',
       },
     });
-    await mermaid.run({ querySelector: '.mermaid' });
+    await mermaidModule.run({ querySelector: '.mermaid' });
   } catch (err) {
     console.warn('mermaid failed', err);
   }
@@ -230,4 +317,4 @@ buildTabs();
 buildSteppers();
 buildToc();
 buildFooter();
-buildMermaid();
+renderMermaid();

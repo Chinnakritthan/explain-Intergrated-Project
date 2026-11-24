@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Backend Architecture | ITB-CSV Explained</title>
+  <title>Backend (แยกตาม Sprint + ภาพรวม) | ITB-CSV Explained</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
@@ -16,75 +16,56 @@
   <main>
 
     <section class="hero">
-      <div class="kicker">LAYER DEEP DIVE · BACKEND</div>
-      <h1>⚙️ Backend Architecture — Express + Prisma (Layered)</h1>
-      <p class="lead">Backend เขียนด้วย <b>Node.js (ESM) + Express 4 + Prisma 6 + jose</b> แบ่งเป็น 5 ชั้นชัดเจน ทำให้เพิ่มฟีเจอร์จาก Sprint 1 → 2 → 3 ได้โดยไม่พันกัน</p>
-      <p><span class="badge be">11 REST Endpoints</span> <span class="badge auth">JWKS Auth</span> <span class="badge be">RFC 9457 Errors</span> <span class="badge db">Prisma ORM</span></p>
+      <div class="kicker">LAYER DEEP DIVE · BACKEND (SPRINT 1–3 + OVERVIEW)</div>
+      <h1>⚙️ Backend Architecture — แยกเจาะลึกทีละ Sprint + ภาพรวม</h1>
+      <p class="lead">Backend ใช้ <b>Node.js (ESM) + Express 4 + Prisma 6 + jose</b> วางโครงแบบ <b>5-Layer Architecture</b> ชัดเจน หน้านี้จะพาไล่ดูตั้งแต่โครงสร้างภาพรวม แล้วเจาะทีละ Sprint ว่าแต่ละ Sprint เพิ่ม Endpoint, Middleware และ Business Logic อะไรเข้ามาบ้าง</p>
+      <p><span class="badge be">13 REST Routes</span> <span class="badge auth">JWKS Auth (jose)</span> <span class="badge be">RFC 9457</span> <span class="badge db">Prisma 6</span></p>
+      <div class="jump-bar">
+        <a href="#overview">📌 ภาพรวม Backend</a>
+        <a href="#be-s1">1️⃣ Sprint 1 (Public API)</a>
+        <a href="#be-s2">2️⃣ Sprint 2 (Student & CRUD)</a>
+        <a href="#be-s3">3️⃣ Sprint 3 (Auth, RFC 9457, Clash, Sessions)</a>
+        <a href="#summary">🔁 สรุปวิวัฒนาการ & ทางเลือก</a>
+      </div>
     </section>
 
-    <h2 id="layers">โครงสร้าง 5 ชั้น (Layered Architecture)</h2>
+    <!-- ================= OVERVIEW ================= -->
+    <div class="sprint-banner ov">
+      <h2 id="overview">📌 ภาพรวม Backend ทั้งระบบ (5-Layer Architecture)</h2>
+      <p>ทุก Request ที่เข้ามาที่ Express จะไหลผ่าน 5 ชั้นตามลำดับเดียวกันเสมอ ทำให้เพิ่มฟีเจอร์ใหม่ได้โดยไม่กระทบของเดิม</p>
+    </div>
+
     <div class="flow">
-      <div class="node be"><b>1. Routes</b>จับคู่ HTTP Method + Path</div><span class="arrow">→</span>
+      <div class="node be"><b>1. Routes</b>จับคู่ URL + Method<br><span class="small muted">6 ไฟล์</span></div><span class="arrow">→</span>
       <div class="node auth"><b>2. Middleware</b>Auth (401/403)<br>Validate (400)</div><span class="arrow">→</span>
-      <div class="node be"><b>3. Controller</b>แกะ req, ส่ง res<br>try/catch → next(err)</div><span class="arrow">→</span>
-      <div class="node be"><b>4. Service</b>Business Rules<br>(fixed, clash, profile)</div><span class="arrow">→</span>
-      <div class="node db"><b>5. Repository</b>Prisma query<br>อย่างเดียว</div>
+      <div class="node be"><b>3. Controller</b>แกะ req / ส่ง res<br>try-catch → next()</div><span class="arrow">→</span>
+      <div class="node be"><b>4. Service</b>Business Rules<br>(fixed, clash, id)</div><span class="arrow">→</span>
+      <div class="node db"><b>5. Repository</b>คุย DB ผ่าน Prisma<br><span class="small muted">5 ไฟล์</span></div>
     </div>
 
-    <div class="callout tip"><span class="t">💡 ทำไมต้องแยก Controller กับ Service ออกจากกัน?</span>
-      <ul>
-        <li><b>Controller</b> รู้จักโลกของ HTTP (<code>req.params</code>, <code>req.body</code>, <code>res.status(201)</code>) แต่ไม่รู้กฎธุรกิจ</li>
-        <li><b>Service</b> รู้จักกฎธุรกิจ (เช่น <code>studentService.getStudentProfile()</code>) แต่ไม่รู้จัก <code>req/res</code> — จึงถูกเรียกใช้ซ้ำจากหลายที่ได้! เช่น <code>selection.service.js</code> เรียกใช้ทั้ง <code>student.service.js</code> และ <code>year-level.service.js</code> โดยตรง</li>
-      </ul>
-    </div>
-
-    <h2 id="endpoints">รวม API Endpoints ทั้งหมด (11 เส้น · Sprint 1–3)</h2>
+    <h3 id="endpoints">ตารางรวม API Endpoints ทั้งหมด (13 เส้น · Sprint 1–3)</h3>
     <div class="table-wrap">
       <table class="t">
-        <thead><tr><th>Method &amp; Endpoint</th><th>Sprint</th><th>Auth / Role</th><th>Middleware → Controller</th></tr></thead>
+        <thead><tr><th>Method &amp; Endpoint</th><th>Sprint</th><th>สิทธิ์เข้าถึง</th><th>สายงาน (Middleware → Controller → Service)</th></tr></thead>
         <tbody>
-          <tr><td><code>GET /api/v1/health</code></td><td>1</td><td><span class="badge gray">Open</span></td><td><code>health.controller.getHealthStatus</code></td></tr>
-          <tr><td><code>GET /api/v1/schedules[?yearLevel]</code></td><td>1</td><td><span class="badge gray">Open</span></td><td><code>validateSchedulesQuery</code> → <code>schedule-filter.controller</code></td></tr>
-          <tr><td><code>GET /api/v1/semester</code></td><td>3</td><td><span class="badge gray">Open</span></td><td><code>academic.controller.getSemester</code></td></tr>
-          <tr><td><code>GET /api/v1/year-levels/:yearLevel/schedules</code></td><td>2, 3</td><td><span class="badge auth">student | lecturer</span></td><td><code>validateYearLevelSchedules</code> → <code>year-level.controller</code></td></tr>
-          <tr><td><code>GET /api/v1/students/:studentId</code></td><td>2</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>student.controller.getStudentProfile</code></td></tr>
-          <tr><td><code>GET /api/v1/students/:studentId/selections</code></td><td>2</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>selection.controller.getStudentSelections</code></td></tr>
-          <tr><td><code>POST /api/v1/students/:studentId/selections</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>express.json()</code> → <code>validateCreateSelection</code> → <code>createSelection</code></td></tr>
-          <tr><td><code>PUT /api/v1/students/:studentId/selections/:courseId</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>express.json()</code> → <code>validateUpdateSelection</code> → <code>updateSelection</code></td></tr>
-          <tr><td><code>DELETE /api/v1/students/:studentId/selections/:courseId</code></td><td>2</td><td><span class="badge auth">student + self</span></td><td><code>validateDeleteSelection</code> → <code>deleteSelection</code></td></tr>
-          <tr><td><code>DELETE /api/v1/students/:studentId/selections</code></td><td>2</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>resetSelections</code></td></tr>
-          <tr><td><code>GET /api/v1/students/:studentId/sessions?date=</code></td><td>3</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>validateSessionDate</code> → <code>getStudentSessions</code></td></tr>
-          <tr><td><code>GET /api/v1/lecturers/:username/schedules</code></td><td>3</td><td><span class="badge auth">lecturer + self</span></td><td><code>lecturer.controller.getLecturerSchedules</code></td></tr>
-          <tr><td><code>GET /api/v1/lecturers/:username/sessions?date=</code></td><td>3</td><td><span class="badge auth">lecturer + self</span></td><td><code>validateSessionDate</code> → <code>lecturer.controller.getLecturerSessions</code></td></tr>
+          <tr><td><code>GET /api/v1/health</code></td><td>1</td><td><span class="badge gray">Open</span></td><td><code>health.controller</code></td></tr>
+          <tr><td><code>GET /api/v1/schedules[?yearLevel]</code></td><td>1, 3</td><td><span class="badge gray">Open</span></td><td><code>validateSchedulesQuery</code> → <code>schedule-filter.controller</code> → <code>schedule(.filter).service</code></td></tr>
+          <tr><td><code>GET /api/v1/semester</code></td><td>3</td><td><span class="badge gray">Open</span></td><td><code>academic.controller</code> → <code>academic.service</code></td></tr>
+          <tr><td><code>GET /api/v1/year-levels/:n/schedules</code></td><td>2, 3</td><td><span class="badge auth">student | lecturer</span></td><td><code>validateYearLevelSchedules</code> → <code>year-level.controller</code> → <code>year-level.service</code></td></tr>
+          <tr><td><code>GET /api/v1/students/:id</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>student.controller</code> → <code>student.service</code></td></tr>
+          <tr><td><code>GET /api/v1/students/:id/selections</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>selection.controller</code> → <code>selection.service</code></td></tr>
+          <tr><td><code>POST /api/v1/students/:id/selections</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>express.json()</code> → <code>validateCreateSelection</code> → <code>selection.service.addSelection</code></td></tr>
+          <tr><td><code>PUT /api/v1/students/:id/selections/:courseId</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>express.json()</code> → <code>validateUpdateSelection</code> → <code>selection.service.changeSelection</code></td></tr>
+          <tr><td><code>DELETE /api/v1/students/:id/selections/:courseId</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>validateDeleteSelection</code> → <code>selection.service.removeSelection</code></td></tr>
+          <tr><td><code>DELETE /api/v1/students/:id/selections</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>selection.service.resetStudentSelections</code></td></tr>
+          <tr><td><code>GET /api/v1/students/:id/sessions?date=</code></td><td>3</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>validateSessionDate</code> → <code>student.service.getStudentSessions</code></td></tr>
+          <tr><td><code>GET /api/v1/lecturers/:u/schedules</code></td><td>3</td><td><span class="badge auth">lecturer + self</span></td><td><code>lecturer.controller</code> → <code>lecturer.service.getSchedulesByUsername</code></td></tr>
+          <tr><td><code>GET /api/v1/lecturers/:u/sessions?date=</code></td><td>3</td><td><span class="badge auth">lecturer + self</span></td><td><code>validateSessionDate</code> → <code>lecturer.service.getLecturerSessions</code></td></tr>
         </tbody>
       </table>
     </div>
 
-    <h2 id="pipeline">Middleware Pipeline ใน <code>student.routes.js</code></h2>
-    <p>ลำดับ middleware ใน Express คือตัวกำหนดลำดับ Error <code>401 → 403 → 400 → 404 → 409</code> อัตโนมัติ! ลองดูโค้ดจริง:</p>
-    <script type="text/x-code" data-path="backend/src/routes/student.routes.js">
-      const router = express.Router();
-
-      // ด่านที่ 1 & 2 (ทุกเส้นใต้ /api/v1/students): ตรวจ Token (401) → ตรวจ Role 'student' (403)
-      router.use(requireAccessToken, requireRole('student'));
-
-      // ด่านที่ 3: requireSelf('studentId') → ตรวจว่าเป็น ID ของตัวเอง (403)
-      // ด่านที่ 4: express.json() → parse JSON (ถ้า JSON พังจะข้ามไป errorHandler ตอบ 400!)
-      // ด่านที่ 5: validateCreateSelection → ตรวจค่าทุก field (400)
-      // ด่านที่ 6: controller → service (404 → 409)
-      router.post(
-        '/:studentId/selections',
-        requireSelf('studentId'),
-        express.json(),
-        validateCreateSelection,
-        selectionController.createSelection
-      );
-    </script>
-
-    <div class="callout note"><span class="t">🧠 ทำไมทีมใส่ <code>express.json()</code> แค่ใน POST/PUT หลัง <code>requireSelf</code> แทนที่จะใส่บนสุดใน <code>app.js</code>?</span>
-      ฉลาดมาก! เพราะถ้าใส่ <code>app.use(express.json())</code> บนสุดใน <code>app.js</code> เมื่อมีคนส่ง <b>JSON พัง + ไม่มี Token</b> ตัว <code>express.json()</code> จะพ่น 400 ออกมาก่อน <code>requireAccessToken</code> จะได้ตรวจ 401 — ซึ่งจะ <b>ผิดลำดับ 401 → 403 → 400 ของ PBI9!</b> การวาง <code>express.json()</code> ไว้หลัง <code>requireSelf</code> ทำให้ 401 และ 403 ชนะ 400 เสมอ</div>
-
-    <h2 id="service-graph">ความสัมพันธ์ระหว่าง Services และ Repositories</h2>
+    <h3 id="service-graph">กราฟความสัมพันธ์ระหว่าง Services และ Repositories</h3>
     <pre class="mermaid">
 flowchart LR
   subgraph SVC["Services (Business Logic)"]
@@ -118,48 +99,143 @@ flowchart LR
   ACAS --> R_ACA
     </pre>
 
-    <h2 id="legacy">ไฟล์เก่าที่ยังค้างอยู่ใน Repo (ไม่ได้ใช้งานแล้ว)</h2>
-    <p>จากการไล่ import graph ทั้งโปรเจกต์ พบ 2 ไฟล์ที่เป็นร่องรอยจาก Sprint 1 ซึ่งปัจจุบัน <b>ไม่มีไฟล์ไหน import แล้ว</b>:</p>
+    <!-- ================= SPRINT 1 ================= -->
+    <div class="sprint-banner s1">
+      <h2 id="be-s1">1️⃣ Sprint 1 — วางโครง Express + Public Schedules API (PBI 1–2)</h2>
+      <p>เป้าหมาย: วางรากฐาน Express, บังคับ UTF-8, เชื่อม Prisma, ตอบ <code>/health</code> และ <code>/schedules[?yearLevel]</code> ให้ตรงรูปทรง JSON และลำดับ 6 ขั้น</p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>ไฟล์ที่สร้างใน Sprint 1</th><th>หน้าที่ละเอียด</th></tr></thead>
+        <tbody>
+          <tr><td><span class="file be">src/server.js</span> + <span class="file be">src/app.js</span></td><td><code>server.js</code> โหลด <code>dotenv/config</code> บรรทัดแรกสุดแล้วเปิด port; <code>app.js</code> เปิด <code>cors()</code>, เซ็ต <code>Content-Type: application/json; charset=utf-8</code> ทุก response และติด <code>errorHandler</code> ท้ายสุด</td></tr>
+          <tr><td><span class="file db">src/config/prisma.js</span></td><td>สร้าง Singleton <code>PrismaClient</code> ให้ทุก repository แชร์ connection pool เดียวกัน (แทนที่ <code>config/db.js</code> ที่เคยใช้ <code>mysql2</code>)</td></tr>
+          <tr><td><span class="file be">routes/health.routes.js</span> → <span class="file be">controllers/health.controller.js</span></td><td>คืน <code>{ status: "ok", team: "ip26-zap" }</code> ให้ระบบตรวจเช็คว่า backend ทำงานอยู่</td></tr>
+          <tr><td><span class="file be">routes/schedule.routes.js</span> → <span class="file be">schedule-filter.controller.js</span></td><td>แยกการทำงาน: ไม่มี <code>?yearLevel</code> เรียก <code>schedule.service</code> (PBI1), มี <code>?yearLevel=1..4</code> เรียก <code>schedule-filter.service</code> (PBI2)</td></tr>
+          <tr><td><span class="file be">repositories/schedule.repository.js</span></td><td><code>findAll()</code> และ <code>findByYearLevel(n)</code> โดยใช้ <code>include: { course: true }</code> JOIN ตารางวิชาในคำสั่งเดียว</td></tr>
+          <tr><td><span class="file be">utils/schedule.formatter.js</span></td><td><b>หัวใจ TR-08:</b> ตัด <code>room</code> และ <code>courseId</code> ออก, ปั้น nested object <code>course</code>, และแปลง MySQL <code>TIME</code> ด้วย <code>getUTCHours()</code> เพื่อไม่ให้เวลาเพี้ยนตาม timezone</td></tr>
+          <tr><td><span class="file be">utils/schedule.sorter.js</span></td><td>เรียงลำดับ 6 ขั้น: <code>yearLevel → course.id → section → day (Mon=1..Sun=7) → startTime → id</code> โดย copy array ก่อน (<code>[...rows]</code>) ไม่แก้ต้นฉบับ</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ================= SPRINT 2 ================= -->
+    <div class="sprint-banner s2">
+      <h2 id="be-s2">2️⃣ Sprint 2 — Student Profile, Fixed vs Option &amp; Selection CRUD (PBI 4–7)</h2>
+      <p>เป้าหมาย: เพิ่ม Business Logic หนัก ๆ 3 ก้อน ได้แก่ ถอดรหัสนักศึกษา 11 หลัก, คำนวณ <code>fixed</code>, และ CRUD ตาราง <code>selections</code> ด้วยเวลาจาก MySQL</p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>ไฟล์ที่เพิ่มใน Sprint 2</th><th>หน้าที่ &amp; Logic สำคัญ</th></tr></thead>
+        <tbody>
+          <tr><td><span class="file be">routes/student.routes.js</span> + <span class="file be">routes/year-level.routes.js</span></td><td>เปิดเส้นทาง <code>/api/v1/students/*</code> (6 เส้น) และ <code>/api/v1/year-levels/:yearLevel/schedules</code></td></tr>
+          <tr><td><span class="file be">services/student.service.js</span> + <span class="file db">student.repository.js</span></td><td>หั่นรหัส 11 หลัก → <code>entryYear</code> (2 หลัก), <code>programCode</code> (6 หลักเทียบกับ <code>academic_settings</code>), <code>studentNo</code> (3 หลักเช็คช่วงใน <code>student_group_ranges</code>) คำนวณ <code>yearLevel = (2569 % 100) - entryYear + 1</code></td></tr>
+          <tr><td><span class="file be">services/year-level.service.js</span></td><td>นับจำนวน section ต่อวิชาด้วย <code>Map&lt;courseId, Set&lt;section&gt;&gt;</code> แล้วตัดสิน <code>isFixedSchedule()</code> + กรอง <code>?studentGroup=A</code> โดย <b>ต้องเก็บ <code>studentGroup === null</code> ไว้ด้วย</b> ไม่งั้น INT504 หาย!</td></tr>
+          <tr><td><span class="file be">services/selection.service.js</span> + <span class="file db">selection.repository.js</span></td><td><b>PBI 5–7:</b> ตรวจว่าวิชานั้นเป็น option ของชั้นปีตัวเองจริง (<code>validateOptionSection</code> → 404), กันเลือกซ้ำ (409), รองรับ PUT section เดิม (200 ไม่แก้ <code>updatedAt</code>) และใช้ <code>prisma.$executeRaw</code> พร้อม <code>UTC_TIMESTAMP(3)</code> เพื่อใช้นาฬิกาของ MySQL จริง</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script type="text/x-code" data-path="backend/src/services/selection.service.js" data-note="ลำดับการเช็คใน changeSelection (PUT)">
+      export async function changeSelection(studentId, courseId, section, acceptClash = false) {
+        const profile = await studentService.getStudentProfile(studentId);  // 1) เช็ค 404 student-not-found ก่อน
+        const numericCourseId = Number(courseId);
+        const existing = await selectionRepo.findByStudentAndCourse(studentId, numericCourseId);
+        if (!existing) throw AppError.problem(PROBLEM_TYPES.SELECTION_NOT_FOUND, ...); // 2) เช็ค 404 selection-not-found
+
+        await validateOptionSection(profile.yearLevel, numericCourseId, section);      // 3) เช็ค 404 section-not-found
+        if (existing.section === section) return formatSelection(existing);            // 4) section เดิม → 200 ไม่แก้ DB!
+
+        await validateScheduleClash(profile, studentId, numericCourseId, section, acceptClash, numericCourseId); // 5) PBI11: 409 clash (เว้น section เก่าของตัวเอง!)
+        const updated = await selectionRepo.updateSelection(studentId, numericCourseId, section);
+        return formatSelection(updated);
+      }
+    </script>
+
+    <!-- ================= SPRINT 3 ================= -->
+    <div class="sprint-banner s3">
+      <h2 id="be-s3">3️⃣ Sprint 3 — Lecturer, RFC 9457, JWT Security, Clash &amp; Weekly Sessions (PBI 8–12)</h2>
+      <p>เป้าหมาย: อัปเกรด Backend ให้แข็งแกร่งระดับ Production — ปฏิเสธ request ผิดทุกรูปแบบตามลำดับ <code>401 → 403 → 400 → 404 → 409</code> และเพิ่มระบบตารางรายสัปดาห์</p>
+    </div>
+
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>PBI</th><th>ไฟล์ที่เพิ่ม / อัปเกรด</th><th>สิ่งที่ทำใน Backend</th></tr></thead>
+        <tbody>
+          <tr><td><b>PBI 8</b></td><td><span class="file be">lecturer.routes/controller/service/repository.js</span><br><span class="file be">schedule.formatter.js</span></td><td>เพิ่ม <code>GET /lecturers/:username/schedules</code> (404 <code>lecturer-not-found</code> ถ้าไม่มีในตาราง), อัปเกรด <code>year-level</code> ให้ JOIN <code>scheduleLecturers</code> แล้วแนบ <code>lecturers: [{ id, firstName, lastName }]</code></td></tr>
+          <tr><td><b>PBI 9</b></td><td><span class="file be">middleware/validate.js</span><br><span class="file be">middleware/errorHandler.js</span></td><td>ประกาศ <code>PROBLEM_TYPES</code> ครบ 9 ชนิด (RFC 9457 <code>application/problem+json</code>), เก็บ error ทุก field ที่ผิดในครั้งเดียว, ดัก <code>SyntaxError</code> เมื่อ body ไม่ใช่ JSON</td></tr>
+          <tr><td><b>PBI 10</b></td><td><span class="file auth">middleware/auth.middleware.js</span><br>ทุก protected route</td><td>ใช้ <code>jose</code> (<code>createRemoteJWKSet</code> + <code>jwtVerify</code>) ตรวจ 4 ข้อ (Signature, <code>iss</code>, <code>exp</code>, <code>azp === TEAM_CODE</code>) → 401; ต่อด้วย <code>requireRole()</code> และ <code>requireSelf()</code> → 403</td></tr>
+          <tr><td><b>PBI 11</b></td><td><span class="file be">services/selection.service.js</span></td><td>เพิ่ม <code>isScheduleClashing()</code> (วันเดียวกัน + <code>startA &lt; endB &amp;&amp; startB &lt; endA</code> + สัปดาห์ซ้อนกัน) และ <code>findScheduleClashes()</code> ตรวจทุกวันของ section ใหม่เทียบกับ fixed + selected</td></tr>
+          <tr><td><b>PBI 12</b></td><td><span class="file be">academic.routes/controller/service/repository.js</span><br><span class="file be">utils/week.util.js</span> · <span class="file be">utils/session.formatter.js</span></td><td>เพิ่ม <code>GET /semester</code> (Open), <code>GET /students/:id/sessions?date=</code> (มี <code>lecturers[]</code>), <code>GET /lecturers/:u/sessions?date=</code> (ไม่มี <code>lecturers[]</code>) โดยคำนวณช่วงจันทร์–อาทิตย์ด้วย <code>getWeekRange()</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="pipeline-trick">เทคนิคเด็ดใน <code>student.routes.js</code>: ลำดับ Middleware บังคับลำดับ Status Code</h3>
+    <script type="text/x-code" data-path="backend/src/routes/student.routes.js">
+      router.use(requireAccessToken, requireRole('student'));  // ด่าน 1: 401 → ด่าน 2: 403 (role)
+
+      router.post(
+        '/:studentId/selections',
+        requireSelf('studentId'),     // ด่าน 3: 403 (ownership — ห้ามแอบแก้ของคนอื่น)
+        express.json(),               // ด่าน 4: 400 (ถ้า JSON พัง — วางหลัง 401/403 เพื่อไม่ให้ 400 แซง!)
+        validateCreateSelection,      // ด่าน 5: 400 (ตรวจครบทุก field)
+        selectionController.createSelection  // ด่าน 6: 404 → 409 → 201
+      );
+    </script>
+
+    <!-- ================= SUMMARY & ALTERNATIVES ================= -->
+    <div class="sprint-banner ov">
+      <h2 id="summary">🔁 สรุปภาพรวม, ไฟล์เก่า &amp; โค้ดทางเลือกที่ใช้แทนได้</h2>
+      <p>จุดสังเกตในโค้ดปัจจุบันและวิธีเขียนแบบอื่นในโลกจริง</p>
+    </div>
+
     <div class="grid c2">
       <div class="card">
-        <h4><span class="file be">src/config/db.js</span></h4>
-        <p class="small">ไฟล์เชื่อมต่อ MySQL ด้วย <code>mysql2/promise</code> จากช่วงเริ่มต้น ก่อนที่ทีมจะเปลี่ยนมาใช้ Prisma ทั้งหมดใน <span class="file be">src/config/prisma.js</span> (รวมถึง dependency <code>mysql2</code> ใน <code>package.json</code> ก็ไม่ได้ถูกเรียกในโค้ด runtime แล้ว)</p>
+        <h4>⚠️ ไฟล์ Legacy ที่ไม่ได้ใช้งานแล้ว (2 ไฟล์)</h4>
+        <p class="small">• <span class="file be">src/config/db.js</span> — <code>mysql2/promise</code> pool จากต้น Sprint 1 (ปัจจุบันทุก repository ใช้ <span class="file db">prisma.js</span> แทนหมดแล้ว)<br>
+        • <span class="file be">src/controllers/schedule.controller.js</span> — controller PBI1 รุ่นแรกก่อนรวมเป็น <code>schedule-filter.controller.js</code></p>
       </div>
       <div class="card">
-        <h4><span class="file be">src/controllers/schedule.controller.js</span></h4>
-        <p class="small">Controller ตัวแรกของ PBI1 ก่อนถูกแทนที่ด้วย <span class="file be">schedule-filter.controller.js</span> ที่รองรับทั้ง PBI1 (All) และ PBI2 (<code>?yearLevel</code>) ในไฟล์เดียว</p>
+        <h4>✅ จุดแข็งของ Backend ทีมนี้</h4>
+        <p class="small">• แยก Controller / Service / Repository ขาดจากกัน ทำให้ <code>selection.service</code> และ <code>student.service</code> เรียกใช้ <code>year-level.service</code> ซ้ำได้ทันที<br>
+        • รองรับ override <code>KEYCLOAK_JWKS_URI</code> จาก env จึงเทส PBI10 ใน CI แบบ offline ได้ 100%</p>
       </div>
     </div>
 
-    <h2 id="alternatives">ทางเลือกอื่นในการออกแบบ Backend</h2>
+    <p class="alt-title">ทางเลือกอื่นในการออกแบบ Backend</p>
     <div class="tabs">
       <div class="tab-panel" data-label="ORM: Prisma vs mysql2">
-        <p>เปรียบเทียบวิธี query ตาราง <code>courses_schedule</code> ด้วย Prisma (ที่ทีมใช้) กับ Raw SQL ผ่าน <code>db.js</code> (<code>mysql2</code>):</p>
-        <script type="text/x-code" data-lang="javascript">
-          // ✅ แบบ Prisma (ปัจจุบัน — schedule.repository.js)
+        <script type="text/x-code">
+          // ✅ ปัจจุบัน (Prisma — schedule.repository.js)
           await prisma.courseSchedule.findMany({
             where: { course: { is: { yearLevel } } },
             include: { course: true }
           });
 
-          // 🔁 แบบ mysql2 raw SQL (ถ้าใช้ config/db.js)
+          // 🔁 ทางเลือก (Raw SQL ผ่าน mysql2 pool ใน config/db.js)
           const [rows] = await pool.execute(
             `SELECT cs.*, c.code, c.title, c.type, c.year_level
              FROM courses_schedule cs JOIN courses c ON c.id = cs.course_id
              WHERE c.year_level = ?`, [yearLevel]
           );
         </script>
-        <p class="small"><b>สรุป:</b> Prisma ได้ object ซ้อน <code>item.course</code> อัตโนมัติและตรงตามกฎ TR-05 ส่วน <code>mysql2</code> เร็วกว่าเล็กน้อยและเขียน SQL ซับซ้อนตรง ๆ ได้ (ซึ่งทีมก็ใช้ <code>prisma.$executeRaw</code> ผสมเมื่อจำเป็น เช่น <code>UTC_TIMESTAMP(3)</code>)</p>
       </div>
-      <div class="tab-panel" data-label="โครงสร้างโฟลเดอร์: Layer vs Feature">
-        <div class="pc">
-          <div class="pro"><b>แบบแบ่งตาม Layer (ที่ทีมใช้)</b><ul><li><code>routes/</code>, <code>controllers/</code>, <code>services/</code>, <code>repositories/</code></li><li>หาง่ายว่า middleware หรือ formatter อยู่ไหน</li><li>เหมาะกับขนาดเล็ก-กลาง (5–15 endpoints)</li></ul></div>
-          <div class="con"><b>แบบแบ่งตาม Feature (ทางเลือก)</b><ul><li><code>features/students/</code> (รวม route+ctrl+svc+repo), <code>features/lecturers/</code></li><li>แก้ 1 ฟีเจอร์ไม่ต้องสลับเปิด 4 โฟลเดอร์</li><li>เหมาะเมื่อโปรเจกต์โตเกิน 30–50 endpoints</li></ul></div>
-        </div>
+      <div class="tab-panel" data-label="Validation: เขียนเอง vs Zod">
+        <script type="text/x-code">
+          // 🔁 ใช้ Zod ลดโค้ด if/else ใน validate.js จาก 191 บรรทัดเหลือ ~50 บรรทัด
+          const createSelectionSchema = z.object({
+            courseId:    z.number().int().min(1).max(2147483647),
+            section:     z.number().int().min(1).max(99),
+            acceptClash: z.boolean().optional(),
+          });
+        </script>
       </div>
       <div class="tab-panel" data-label="Framework: Express 4 vs Express 5 / Fastify">
-        <p class="small"><b>Express 4 (ปัจจุบัน):</b> ต้องเขียน <code>try { ... } catch (err) { next(err); }</code> ในทุก async controller ไม่งั้น unhandled rejection จะค้าง request<br>
-        <b>Express 5 / Fastify / Hono:</b> จัดการ async error ให้อัตโนมัติโดยไม่ต้องเขียน try/catch ซ้ำทุกฟังก์ชัน และ Fastify/Hono มี schema validation ในตัว</p>
+        <p class="small"><b>Express 4 (ปัจจุบัน):</b> ต้องห่อ <code>try { ... } catch (err) { next(err); }</code> ทุก async controller<br>
+        <b>Express 5 / Fastify / Hono:</b> ดัก async error อัตโนมัติ ไม่ต้องเขียน try/catch ซ้ำทุกฟังก์ชัน และ Fastify มี JSON Schema validation + serialization ที่เร็วกว่าในตัว</p>
       </div>
     </div>
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Frontend Architecture | ITB-CSV Explained</title>
+  <title>Frontend (แยกตาม Sprint + ภาพรวม) | ITB-CSV Explained</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
@@ -16,42 +16,56 @@
   <main>
 
     <section class="hero">
-      <div class="kicker">LAYER DEEP DIVE · FRONTEND</div>
-      <h1>🎨 Frontend Architecture — Vanilla JS ES Modules</h1>
-      <p class="lead">โปรเจกต์นี้ห้ามใช้ JS Framework อย่าง React/Vue (TR-05) ทีมจึงออกแบบโครงสร้างแบบ <b>Modular Vanilla JS</b> แยกหน้าที่ชัดเจน ไม่ต้องมี Build Step (Webpack/Vite) เลย</p>
+      <div class="kicker">LAYER DEEP DIVE · FRONTEND (SPRINT 1–3 + OVERVIEW)</div>
+      <h1>🎨 Frontend Architecture — แยกเจาะลึกทีละ Sprint + ภาพรวม</h1>
+      <p class="lead">เนื่องจาก <b>TR-05 ห้ามใช้ JS Framework</b> (React/Vue/Angular) ทีมจึงออกแบบ Frontend ด้วย <b>Modular Vanilla JS (ES Modules)</b> แบบไม่ต้องมี Build Step — หน้านี้จะพาไล่ดูตั้งแต่ <b>Sprint 1 → Sprint 2 → Sprint 3</b> ทีละไฟล์ แล้วสรุปภาพรวมทั้งชั้น</p>
       <p><span class="badge fe">2 HTML Pages</span> <span class="badge fe">14 JS Modules</span> <span class="badge auth">Keycloak Vendor</span> <span class="badge fe">Liquid Glass CSS</span></p>
+      <div class="jump-bar">
+        <a href="#overview">📌 ภาพรวม Frontend</a>
+        <a href="#fe-s1">1️⃣ Sprint 1 (Guest)</a>
+        <a href="#fe-s2">2️⃣ Sprint 2 (Student & Auth)</a>
+        <a href="#fe-s3">3️⃣ Sprint 3 (Lecturer, Clash, Timetable)</a>
+        <a href="#summary">🔁 สรุปวิวัฒนาการ & ทางเลือก</a>
+      </div>
     </section>
 
-    <h2 id="structure">โครงสร้างการแบ่งชั้นใน <code>frontend/js/</code></h2>
-    <p>แม้จะไม่มี React แต่ทีมแบ่งโค้ดออกเป็น 5 บทบาทชัดเจน เพื่อให้แต่ละไฟล์รับผิดชอบงานเดียว (Separation of Concerns):</p>
+    <!-- ================= OVERVIEW ================= -->
+    <div class="sprint-banner ov">
+      <h2 id="overview">📌 ภาพรวม Frontend ทั้งระบบ</h2>
+      <p>ก่อนเจาะราย Sprint มาดูว่าทั้ง 18 ไฟล์ในโฟลเดอร์ <code>frontend/</code> แบ่งบทบาทและเชื่อมถึงกันอย่างไร</p>
+    </div>
 
     <div class="grid c3">
       <div class="card fe">
-        <h4>1. Entry / Controller</h4>
-        <p class="small"><span class="file fe">main.js</span><br><span class="file fe">my-schedule-main.js</span><br>ถือ State ของหน้า, คุม Routing, เชื่อม API กับ Renderer เข้าด้วยกัน</p>
+        <h4>1. HTML (2 หน้า)</h4>
+        <p class="small"><span class="file fe">index.html</span> — หน้า Guest (ไม่แตะ Keycloak)<br><span class="file fe">my-schedule.html</span> — หน้า Student & Lecturer (มี `<dialog>` ครบ 5 ตัว)</p>
       </div>
       <div class="card fe">
-        <h4>2. API Client</h4>
-        <p class="small"><span class="file fe">api.js</span><br><span class="file fe">my-schedule-api.js</span><br><span class="file fe">timetable-api.js</span><br>คุยกับ Backend อย่างเดียว ไม่ยุ่งกับ DOM</p>
+        <h4>2. Entry / State Controller</h4>
+        <p class="small"><span class="file fe">main.js</span> (21 บรรทัด)<br><span class="file fe">my-schedule-main.js</span> (556 บรรทัด)<br>ถือ State, Cache, Routing และเชื่อม API กับ Renderer</p>
+      </div>
+      <div class="card fe">
+        <h4>3. API Clients</h4>
+        <p class="small"><span class="file fe">api.js</span> (Public)<br><span class="file fe">my-schedule-api.js</span> (Protected)<br><span class="file fe">timetable-api.js</span> (Sessions)<br>คุยกับ Backend อย่างเดียว ไม่ยุ่งกับ DOM</p>
       </div>
       <div class="card auth">
-        <h4>3. Auth</h4>
-        <p class="small"><span class="file auth">auth.js</span><br><span class="file auth">config.js</span><br><span class="file auth">vendor/keycloak.js</span><br>Sign-in, Sign-out, <code>authFetch()</code></p>
+        <h4>4. Authentication</h4>
+        <p class="small"><span class="file auth">config.js</span> · <span class="file auth">auth.js</span><br><span class="file auth">vendor/keycloak.js</span><br>OIDC + PKCE S256 และ <code>authFetch()</code></p>
       </div>
       <div class="card fe">
-        <h4>4. UI Components</h4>
-        <p class="small"><span class="file fe">table-renderer.js</span><br><span class="file fe">my-schedule-renderer.js</span><br><span class="file fe">timetable-renderer.js</span><br><span class="file fe">filter.js</span> · <span class="file fe">modal.js</span><br>วาด DOM และคุม <code>&lt;dialog&gt;</code></p>
+        <h4>5. UI Components</h4>
+        <p class="small"><span class="file fe">filter.js</span> · <span class="file fe">modal.js</span><br><span class="file fe">table-renderer.js</span><br><span class="file fe">my-schedule-renderer.js</span><br><span class="file fe">timetable-renderer.js</span></p>
       </div>
       <div class="card fe">
-        <h4>5. Pure Utils</h4>
-        <p class="small"><span class="file fe">utils/formatters.js</span><br><span class="file fe">utils/date-utils.js</span><br>ฟังก์ชันบริสุทธิ์ แปลงข้อความ/วันที่ ไม่พึ่ง DOM หรือ API</p>
+        <h4>6. Pure Utils & CSS</h4>
+        <p class="small"><span class="file fe">utils/formatters.js</span><br><span class="file fe">utils/date-utils.js</span><br><span class="file fe">css/style.css</span> (1,252 บรรทัด)</p>
       </div>
     </div>
 
-    <h2 id="import-graph">แผนผังการ Import ทั้งหมดของ Frontend</h2>
+    <h3 id="import-graph">แผนผังการ Import ทั้งหมดของ Frontend</h3>
     <pre class="mermaid">
 flowchart TD
-  subgraph P1["หน้า Guest: index.html"]
+  subgraph P1["Sprint 1 · หน้า Guest: index.html"]
     M1["main.js"] --> API1["api.js"]
     M1 --> FLT["components/filter.js"]
     M1 --> TR["components/table-renderer.js"]
@@ -59,7 +73,7 @@ flowchart TD
     TR --> MOD
     TR --> FMT["utils/formatters.js"]
   end
-  subgraph P2["หน้า Signed-in: my-schedule.html"]
+  subgraph P2["Sprint 2–3 · หน้า Signed-in: my-schedule.html"]
     M2["my-schedule-main.js"] --> AUTH["auth.js"]
     M2 --> MAPI["my-schedule-api.js"]
     M2 --> TAPI["timetable-api.js"]
@@ -78,59 +92,170 @@ flowchart TD
   end
     </pre>
 
-    <div class="callout note"><span class="t">🔎 สังเกต 1 จุดสำคัญในกราฟนี้!</span>
-      <code>modal.js</code> มี <code>import { signOutToCurrentPage } from "../auth.js"</code> สำหรับปุ่ม Sign Out ใน <code>session-dialog</code> (หน้า <code>my-schedule.html</code>)
-      ซึ่งแปลว่าหน้า <code>index.html</code> จะโหลดไฟล์ <code>auth.js</code> และ <code>vendor/keycloak.js</code> ติดมาด้วยในระดับ ES Module import — <b>แต่ยังปลอดภัยกับ PBI3</b> เพราะ <code>keycloak.init()</code> ไม่ได้ถูกเรียกจนกว่า <code>requireSignIn()</code> จะทำงาน จึงไม่มีการติดต่อ Keycloak จากหน้าแรก</div>
+    <!-- ================= SPRINT 1 ================= -->
+    <div class="sprint-banner s1">
+      <h2 id="fe-s1">1️⃣ Sprint 1 — หน้า Guest (PBI 1 &amp; PBI 2)</h2>
+      <p>เป้าหมาย: แสดงตารางเรียนทั้งหลักสูตร + ปุ่มกรองตามชั้นปี (All / Year 1–4) โดยไม่ Reload หน้า และไม่ขอข้อมูลซ้ำ</p>
+    </div>
 
-    <h2 id="api-base">จุดน่าสนใจ: ทำไม <code>API_BASE</code> ใน <code>api.js</code> กับ <code>my-schedule-api.js</code> ต่างกัน?</h2>
-    <p>ถ้าอ่านโค้ดจริงจะเห็นความต่างเล็ก ๆ ที่สำคัญมากตอนรัน Playwright:</p>
+    <h3 id="fe-s1-files">ไฟล์ที่สร้างใน Sprint 1</h3>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>ไฟล์</th><th>หน้าที่เฉพาะ</th><th>เชื่อมกับไฟล์ไหน</th></tr></thead>
+        <tbody>
+          <tr><td><span class="file fe">index.html</span></td><td>โครง Semantic HTML: <code>&lt;h1&gt;</code>, ปุ่ม filter <code>aria-pressed</code>, <code>&lt;table data-testid="schedule-table"&gt;</code>, <code>&lt;dialog id="error-dialog" closedby="none"&gt;</code></td><td>โหลด <code>main.js</code>, <code>style.css</code></td></tr>
+          <tr><td><span class="file fe">js/main.js</span></td><td>จุดเริ่มต้น: รอ <code>DOMContentLoaded</code> → เรียก <code>initFilter()</code> → เรียก <code>loadSchedules()</code></td><td>เรียก <code>api.js</code>, <code>filter.js</code>, <code>table-renderer.js</code>, <code>modal.js</code></td></tr>
+          <tr><td><span class="file fe">js/api.js</span></td><td>ยิง <code>GET ./api/v1/schedules[?yearLevel=]</code> พร้อมระบบ Cache 2 ชั้น</td><td>ยิง HTTP ไป Backend <code>schedule.routes.js</code></td></tr>
+          <tr><td><span class="file fe">js/components/filter.js</span></td><td>อ่าน <code>?yearLevel</code> จาก URL, อัปเดต <code>aria-pressed</code>, ใช้ <code>history.pushState</code> เปลี่ยน URL โดยไม่ reload</td><td>ถูกเรียกโดย <code>main.js</code></td></tr>
+          <tr><td><span class="file fe">js/components/table-renderer.js</span></td><td>สร้างแถว <code>&lt;tr data-testid="schedule-row"&gt;</code> 9 คอลัมน์ (ไม่มี Room) ด้วย <code>createElement</code> + <code>textContent</code></td><td>ใช้ <code>formatters.js</code>, <code>modal.js</code></td></tr>
+          <tr><td><span class="file fe">js/components/modal.js</span></td><td>เปิด/ปิด <code>empty-message</code> และเปิด <code>error-dialog.showModal()</code> พร้อมดัก event <code>cancel</code> กันกด Esc</td><td>ถูกเรียกโดย <code>main.js</code>, <code>table-renderer.js</code></td></tr>
+          <tr><td><span class="file fe">js/utils/formatters.js</span></td><td>แปลง <code>"TUESDAY"</code> → <code>"Tuesday"</code>, เวลา <code>"09:30-12:30"</code>, สัปดาห์ <code>"11-15"</code></td><td>ถูกเรียกโดยทุก renderer</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="fe-s1-code">เจาะลึกกลไกสำคัญของ Sprint 1: Cache 2 ชั้นใน <code>api.js</code></h3>
+    <script type="text/x-code" data-path="frontend/js/api.js">
+      const isLocalDev = window.location.port === '5500' || window.location.port === '5173';
+      const API_URL = isLocalDev ? 'http://localhost:3000/api/v1/schedules' : './api/v1/schedules';
+      let allSchedulesCache = null;  // เก็บข้อมูล "All" ทั้งหมด
+      const yearCache = {};          // เก็บแยกทีละชั้นปี เช่น yearCache["2"]
+
+      export async function fetchSchedules(yearLevel = null) {
+        // กรณีที่ 1: เคยโหลด All มาแล้ว → ไม่ต้องยิง API อีกเลย! กรองจาก array ในเครื่องทันที
+        if (allSchedulesCache !== null) {
+          return yearLevel
+            ? allSchedulesCache.filter(item => item.course.yearLevel === Number(yearLevel))
+            : allSchedulesCache;
+        }
+        // กรณีที่ 2: เปิดตรงมาที่ ?yearLevel=2 แล้วกดไป Year 3 แล้วย้อนกลับมา Year 2 → ใช้ yearCache["2"]
+        if (yearLevel && yearCache[yearLevel]) return yearCache[yearLevel];
+
+        // กรณีที่ 3: ยังไม่เคยมีข้อมูล → ยิง fetch จริง
+        const url = yearLevel ? `${API_URL}?yearLevel=${yearLevel}` : API_URL;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("API Error: Status " + response.status);
+        const data = await response.json();
+
+        if (yearLevel) yearCache[yearLevel] = data;
+        else allSchedulesCache = data;
+        return data;
+      }
+    </script>
+    <div class="callout tip"><span class="t">💡 ทำไมต้องแยกทั้ง <code>allSchedulesCache</code> และ <code>yearCache</code>?</span>
+      เพราะถ้าผู้ใช้เปิด <code>index.html</code> (โหลด All) แล้วกด Year 1 → Year 2 → Year 3 หน้าเว็บจะยิง API <b>แค่ครั้งเดียว</b> แต่ถ้าเปิดตรงเข้า <code>?yearLevel=2</code> ก็จะยิงขอเฉพาะ Year 2 ก่อน (ไม่โหลดข้อมูลที่ไม่จำเป็น) ผ่านกฎ <b>TR-06</b> ทั้งสองกรณี!</div>
+
+    <!-- ================= SPRINT 2 ================= -->
+    <div class="sprint-banner s2">
+      <h2 id="fe-s2">2️⃣ Sprint 2 — Sign-in และจัดตารางเรียนนักศึกษา (PBI 3–7)</h2>
+      <p>เป้าหมาย: เพิ่มหน้า <code>my-schedule.html</code> เชื่อม Keycloak, แสดง 2 ตาราง (My Schedule + Courses to Choose), ทำ Select / Remove / Change ด้วย <code>&lt;dialog&gt;</code> โดยไม่ Reload</p>
+    </div>
+
+    <h3 id="fe-s2-files">ไฟล์ที่เพิ่มและแก้ไขใน Sprint 2</h3>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>ไฟล์</th><th>สถานะ</th><th>หน้าที่ใน Sprint 2</th></tr></thead>
+        <tbody>
+          <tr><td><span class="file fe">index.html</span></td><td><span class="badge warn">แก้ไข</span></td><td>เพิ่มลิงก์ <code>&lt;a href="./my-schedule.html"&gt;My Schedule&lt;/a&gt;</code> (ห้ามเรียก Keycloak ในหน้าแรก!)</td></tr>
+          <tr><td><span class="file auth">js/config.js</span> + <span class="file auth">js/auth.js</span> + <span class="file auth">vendor/keycloak.js</span></td><td><span class="badge ok">ใหม่</span></td><td>Login ด้วย OIDC + PKCE S256 (<code>requireSignIn()</code>) และ <code>signOut()</code> กลับหน้าแรก</td></tr>
+          <tr><td><span class="file fe">my-schedule.html</span></td><td><span class="badge ok">ใหม่</span></td><td>หน้าผู้ใช้ที่ล็อกอินแล้ว: Header ชื่อ + โปรไฟล์ + ปุ่ม Sign Out, ตาราง <code>my-schedule</code>, ตาราง <code>course-options</code> และ <code>&lt;dialog&gt;</code> สำหรับ Message/Confirm/Change</td></tr>
+          <tr><td><span class="file fe">js/my-schedule-api.js</span></td><td><span class="badge ok">ใหม่</span></td><td>รวม 6 ฟังก์ชันยิง API: <code>fetchStudentProfile</code>, <code>fetchYearSchedules</code>, <code>fetchStudentSelections</code>, <code>selectCourseSection</code> (POST), <code>removeCourseSelection</code> (DELETE), <code>changeCourseSection</code> (PUT)</td></tr>
+          <tr><td><span class="file fe">js/my-schedule-main.js</span></td><td><span class="badge ok">ใหม่</span></td><td>คุมวงจรชีวิตหน้า: ตรวจ login → โหลด 3 API (profile ก่อน แล้ว <code>Promise.all([schedules, selections])</code>) → ถือ state ใน memory → อัปเดต state หลัง 201/200/204 โดยไม่ยิง API ซ้ำ</td></tr>
+          <tr><td><span class="file fe">js/components/my-schedule-renderer.js</span></td><td><span class="badge ok">ใหม่</span></td><td>แยกแถวเป็น 2 ตาราง (My Schedule มีปุ่ม Remove/Change เฉพาะวิชาที่เลือกเอง, Courses to Choose มีปุ่ม Select และซ่อนทั้ง section เมื่อว่าง), คุม <code>showMessageDialog()</code> และ <code>showChangeDialog()</code></td></tr>
+          <tr><td><span class="file infra">serve.json</span></td><td><span class="badge ok">ใหม่</span></td><td>ตั้ง <code>"cleanUrls": false</code> ไม่ให้ <code>npx serve</code> ลบ <code>.html</code> ออกจาก URL ตอนรัน dev/test</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="fe-s2-code">เจาะลึกกลไกสำคัญของ Sprint 2: การแยก 2 ตารางจาก State เดียว</h3>
+    <p>Backend ส่งตารางเรียนทั้งชั้นปีมาเป็น flat array เดียว (มีฟิลด์ <code>fixed: true/false</code>) จากนั้น <span class="file fe">my-schedule-renderer.js</span> จะเป็นคนกรองแยกเป็น 2 ตารางทุกครั้งที่ <code>selections</code> เปลี่ยน:</p>
+    <script type="text/x-code" data-path="frontend/js/components/my-schedule-renderer.js">
+      // ตารางบน (My Schedule) = วิชาบังคับ (fixed === true) + วิชาที่นักศึกษาเลือกไว้ตรงทั้ง courseId และ section
+      const myScheduleRows = schedules.filter(item => {
+        if (item.fixed) return true;
+        return selections.some(sel => sel.courseId === item.course.id && sel.section === item.section);
+      });
+
+      // ตารางล่าง (Courses to Choose) = เฉพาะวิชาเลือก (!fixed) ที่นักศึกษา "ยังไม่ได้เลือกวิชานี้เลย"
+      // ⭐ สังเกต: เช็คแค่ sel.courseId (ไม่เช็ค section) เพื่อให้ทุก section อื่นของวิชาที่เลือกแล้วหายไปจากตารางล่างด้วย!
+      const courseOptionRows = schedules.filter(item => {
+        if (item.fixed) return false;
+        const alreadySelectedCourse = selections.some(sel => sel.courseId === item.course.id);
+        return !alreadySelectedCourse;
+      });
+    </script>
+    <div class="callout note"><span class="t">🔎 ปุ่ม <b>Change</b> โผล่เมื่อไหร่?</span>
+      ในแถวที่นักศึกษาเลือกเอง (<code>isSelectedByStudent</code>) โค้ดนับจำนวน section ที่ไม่ซ้ำด้วย <code>new Set(...)</code> — ถ้ามี <b>มากกว่า 1 section</b> จึงสร้างปุ่ม <code>Change</code> เพิ่ม (รวมถึงวิชา Elective ที่มี 2 section เช่น INT531 ใน Sprint 3 ด้วย!)</div>
+
+    <!-- ================= SPRINT 3 ================= -->
+    <div class="sprint-banner s3">
+      <h2 id="fe-s3">3️⃣ Sprint 3 — อาจารย์, Validation, Token, Clash &amp; Weekly Timetable (PBI 8–12)</h2>
+      <p>เป้าหมาย: ต่อยอดหน้า <code>my-schedule.html</code> ให้รองรับ 2 บทบาท (Student + Lecturer) และ 2 มุมมอง (Courses + Weekly Timetable) พร้อมความปลอดภัยเต็มรูปแบบ</p>
+    </div>
+
+    <h3 id="fe-s3-files">ไฟล์ที่เพิ่มและอัปเกรดใน Sprint 3</h3>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>PBI</th><th>ไฟล์ที่เพิ่ม / แก้ไข</th><th>สิ่งที่เปลี่ยนในโค้ด Frontend</th></tr></thead>
+        <tbody>
+          <tr><td><b>PBI 8</b></td><td><span class="file fe">my-schedule-renderer.js</span><br><span class="file fe">formatters.js</span></td><td>เพิ่มคอลัมน์ <b>Instructor</b> (<code>formatLecturers</code>) ในตารางนักศึกษา, เพิ่มตาราง <b>Teaching Schedule</b> (มีคอลัมน์ <code>Year</code>) + <code>lecturer-empty</code> + <code>not-lecturer</code></td></tr>
+          <tr><td><b>PBI 9</b></td><td><span class="file fe">filter.js</span><br><span class="file fe">my-schedule-api.js</span></td><td><code>filter.js</code> ลบ <code>?yearLevel</code> ที่ผิดออกจาก URL ด้วย <code>history.replaceState</code> ไม่ยิง API ผิด; <code>my-schedule-api.js</code> ตรวจ 400 <code>field === 'studentId'</code> แล้วโชว์ข้อความ <code>invalid-student-id</code></td></tr>
+          <tr><td><b>PBI 10</b></td><td><span class="file auth">auth.js</span> · <span class="file fe">modal.js</span><br><span class="file fe">my-schedule-api.js</span></td><td>เปลี่ยนทุก protected request มาใช้ <code>authFetch()</code> (เรียก <code>keycloak.updateToken(30)</code> ก่อนยิงทุกครั้ง); เพิ่ม <code>showSessionModal()</code> เมื่อเจอ 401/403; เอาพอร์ต 5173 ออกจาก <code>isLocalDev</code> เพื่อให้ Playwright UI stub ดักได้</td></tr>
+          <tr><td><b>PBI 11</b></td><td><span class="file fe">my-schedule.html</span><br><span class="file fe">my-schedule-main.js</span><br><span class="file fe">my-schedule-renderer.js</span></td><td>เพิ่ม <code>&lt;dialog id="clash-dialog"&gt;</code> และ <code>showClashDialog()</code> — แยก 409 ด้วย <code>result.type.endsWith("schedule-clash")</code> แล้วส่ง request เดิมซ้ำพร้อม <code>acceptClash: true</code> เมื่อกด Select/Change anyway</td></tr>
+          <tr><td><b>PBI 12</b></td><td><span class="file fe">timetable-api.js</span> <span class="badge ok">ใหม่</span><br><span class="file fe">timetable-renderer.js</span> <span class="badge ok">ใหม่</span><br><span class="file fe">utils/date-utils.js</span> <span class="badge ok">ใหม่</span><br><span class="file fe">my-schedule-main.js</span></td><td>เพิ่ม View Switcher (<code>Courses</code> / <code>Weekly Timetable</code>), URL sync (<code>?view=&amp;date=</code>) + <code>popstate</code>, Lazy Load แต่ละมุมมอง, <code>sessionsCache</code> Map รายสัปดาห์ และ <b>ล้าง cache ทันทีเมื่อแก้ selection</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="fe-s3-api">จุดสำคัญจาก Git History: ทำไม <code>API_BASE</code> ใน <code>api.js</code> ต่างจาก <code>my-schedule-api.js</code>?</h3>
     <script type="text/x-code" data-path="frontend/js/api.js vs frontend/js/my-schedule-api.js">
       // api.js (หน้า index.html)
       const isLocalDev = window.location.port === '5500' || window.location.port === '5173';
       const API_URL = isLocalDev ? 'http://localhost:3000/api/v1/schedules' : './api/v1/schedules';
 
-      // my-schedule-api.js และ timetable-api.js (หน้า my-schedule.html — แก้ใน commit 7f79a8e)
+      // my-schedule-api.js & timetable-api.js (แก้ใน commit 7f79a8e)
       const isLocalDev = window.location.port === '5500';
       const API_BASE = isLocalDev ? 'http://localhost:3000/api/v1' : './api/v1';
     </script>
-    <p class="small"><b>ทำไมต้องเอา <code>5173</code> ออกใน <code>my-schedule-api.js</code>?</b> เพราะตอนรัน Playwright <code>--project=ui</code> บน <code>localhost:5173</code> ตัว test จะดักจับ (stub/intercept) เฉพาะ request ที่วิ่งเข้า <b>origin เดียวกัน</b> (<code>./api/v1/...</code>) เพื่อตรวจ TC-TR-1 และจำลองคำตอบ 401/403/409 — ถ้าโค้ดไปยิง <code>localhost:3000</code> ตรง ๆ ตัว stub จะไม่ทำงาน!</p>
+    <p class="small"><b>เหตุผล:</b> ตอนรัน Playwright <code>--project=ui</code> บน <code>localhost:5173</code> ตัว test จะ stub เฉพาะ request ที่วิ่งเข้า <b>origin เดียวกัน</b> (<code>./api/v1/...</code>) เพื่อตรวจ TC-TR-1 และจำลอง error 401/403/409 — ถ้าโค้ดไปยิง <code>localhost:3000</code> ตรง ๆ ตัว stub จะจับไม่ได้!</p>
 
-    <h2 id="state">การจัดการ State, Cache และ URL Routing</h2>
-    <p>แนวคิดการคุม state ใน <span class="file fe">my-schedule-main.js</span> คล้าย Mini-SPA โดยไม่ต้องพึ่ง Framework:</p>
+    <h3 id="fe-s3-state">ตารางสรุป State &amp; Cache ทั้งหมดใน <code>my-schedule-main.js</code></h3>
     <div class="table-wrap">
       <table class="t">
         <thead><tr><th>ตัวแปร State</th><th>ชนิดข้อมูล</th><th>หน้าที่</th><th>ล้างเมื่อไหร่?</th></tr></thead>
         <tbody>
           <tr><td><code>semesterCache</code></td><td>Object | null</td><td>เก็บ <code>startDate</code>, <code>endDate</code> จาก <code>GET /api/v1/semester</code></td><td>ไม่ล้างตลอดอายุหน้า</td></tr>
-          <tr><td><code>sessionsCache</code></td><td><code>Map&lt;weekStart, data&gt;</code></td><td>cache ตารางรายสัปดาห์ แยกตามวันจันทร์ของสัปดาห์นั้น</td><td><b>ล้างทันที (<code>.clear()</code>)</b> เมื่อ Select / Remove / Change สำเร็จ</td></tr>
-          <tr><td><code>coursesLoaded</code></td><td>Boolean</td><td>กันไม่ให้โหลด <code>profile + schedules + selections</code> ซ้ำเวลาสลับแท็บกลับไปมา</td><td>ไม่ล้าง</td></tr>
-          <tr><td><code>schedules</code> &amp; <code>selections</code></td><td>Array</td><td>Single Source of Truth สำหรับวาดตาราง My Schedule + Courses to Choose</td><td>แก้ในหน่วยความจำทันทีหลัง 201/200/204; โหลดใหม่เฉพาะตอนเจอ 404/409</td></tr>
-          <tr><td><code>isBusy</code></td><td>Boolean</td><td>Lock ป้องกันผู้ใช้กดปุ่มเปลี่ยนสัปดาห์/เปลี่ยนแท็บรัว ๆ ระหว่างกำลังรอ fetch</td><td>ปลดใน <code>finally</code></td></tr>
+          <tr><td><code>sessionsCache</code></td><td><code>Map&lt;weekStart, data&gt;</code></td><td>เก็บผลลัพธ์ Weekly Timetable แยกตามวันจันทร์ของสัปดาห์นั้น</td><td><b>ล้าง (<code>.clear()</code>) ทันที</b> เมื่อ Select / Remove / Change สำเร็จ</td></tr>
+          <tr><td><code>coursesLoaded</code></td><td>Boolean</td><td>Lazy load flag — โหลด Courses แค่ครั้งแรกที่เปิดมุมมอง Courses</td><td>ไม่ล้าง</td></tr>
+          <tr><td><code>schedules</code> &amp; <code>selections</code></td><td>Array</td><td>Single Source of Truth สำหรับวาด 2 ตารางของนักศึกษา</td><td>อัปเดตในเครื่องหลัง 201/200/204; ยิงใหม่เฉพาะเมื่อเจอ 404/409</td></tr>
+          <tr><td><code>isBusy</code></td><td>Boolean</td><td>Lock กันผู้ใช้กดปุ่มเปลี่ยนสัปดาห์/สลับแท็บรัว ๆ ระหว่างรอ fetch</td><td>ปลดใน <code>finally</code></td></tr>
         </tbody>
       </table>
     </div>
 
-    <h3 id="routing">เทคนิค History API (ไม่ Reload หน้า)</h3>
-    <ul>
-      <li><b><code>history.replaceState()</code>:</b> ใช้เวลา “ทำความสะอาด URL” เช่น ลบ <code>?yearLevel=99</code> หรือ <code>?view=grid</code> ทิ้ง โดย <b>ไม่สร้างประวัติใหม่</b> (กด Back ไม่ย้อนกลับไป URL ผิด ๆ)</li>
-      <li><b><code>history.pushState()</code>:</b> ใช้เวลาผู้ใช้กดเปลี่ยนชั้นปี, สลับแท็บ, หรือกด Previous/Next Week — <b>ทำหลังจาก fetch สำเร็จแล้วเท่านั้น</b> เพื่อไม่ให้ URL เปลี่ยนไปก่อนถ้า API พัง</li>
-      <li><b><code>window.addEventListener('popstate', ...)</code>:</b> ใช้ใน <code>my-schedule-main.js</code> เพื่อรองรับปุ่ม Back/Forward ของเบราว์เซอร์</li>
-    </ul>
+    <!-- ================= SUMMARY & ALTERNATIVES ================= -->
+    <div class="sprint-banner ov">
+      <h2 id="summary">🔁 สรุปภาพรวมวิวัฒนาการ &amp; โค้ดทางเลือกที่ใช้แทนได้</h2>
+      <p>เปรียบเทียบพัฒนาการของ Frontend ตั้งแต่ Sprint 1 ถึง 3 และแนวทางที่สามารถนำไปปรับใช้หรือต่อยอดได้</p>
+    </div>
 
-    <h2 id="css">CSS &amp; UI Contract: Apple Liquid Glass Theme</h2>
-    <p><span class="file fe">frontend/css/style.css</span> (~1,250 บรรทัด) ออกแบบธีม <b>Liquid Glass</b> รองรับทั้ง Dark และ Light mode อัตโนมัติด้วย <code>color-scheme: light dark</code> และ CSS Custom Properties (<code>--glass-window-bg</code>, <code>--glass-surface-bg</code>)</p>
-    <div class="callout tip"><span class="t">⚡ เกร็ด Performance จาก Git History (commit 588379a)</span>
-      เอฟเฟกต์ <code>backdrop-filter: blur()</code> เยอะ ๆ บนทุกแถวตารางทำให้ scroll กระตุก ทีมจึงปรับให้ใช้ translucent surface แทนการ blur ซ้อนหลายชั้น ทำให้เลื่อนตารางได้ลื่นระดับ 120fps ขณะที่ยังผ่าน UI Contract ครบทุกข้อเพราะแยก styling ออกจาก <code>data-testid</code> และ semantic HTML</div>
+    <div class="grid c3">
+      <div class="card fe"><h4>Sprint 1 (21 บรรทัด)</h4><p class="small">1 หน้า · 1 ตาราง · 1 API · Cache ด้วย object ธรรมดา · URL แค่ <code>?yearLevel</code></p></div>
+      <div class="card be"><h4>Sprint 2 (+Keycloak &amp; CRUD)</h4><p class="small">2 หน้า · 2 ตารางสัมพันธ์กัน · 3 Dialog · Optimistic local state ไม่ reload</p></div>
+      <div class="card db"><h4>Sprint 3 (Mini-SPA เต็มตัว)</h4><p class="small">2 Roles × 2 Views · <code>authFetch</code> · Clash retry · Lazy fetch + <code>Map</code> cache + <code>popstate</code></p></div>
+    </div>
 
-    <h2 id="alternatives">ทางเลือกอื่นในการออกแบบ Frontend</h2>
+    <div class="callout tip"><span class="t">🎨 ธีม CSS: Apple Liquid Glass (<code>frontend/css/style.css</code>)</span>
+      ทีมแยก styling ออกจาก logic ด้วย <code>data-testid</code> และ Semantic HTML 100% ทำให้ปรับธีม Dark/Light (<code>color-scheme: light dark</code>) และแก้ performance (ลด <code>backdrop-filter</code> ซ้อนหลายชั้นใน commit <code>588379a</code>) ได้โดยไม่ทำให้ Playwright test พังแม้แต่ข้อเดียว</div>
+
+    <p class="alt-title">ทางเลือกอื่นในการเขียน Frontend</p>
     <div class="tabs">
-      <div class="tab-panel" data-label="✅ ปัจจุบัน: Vanilla JS + createElement">
-        <p>ตรงตามกฎ TR-05 100%, เบา, ไม่ต้อง build, ปลอดภัยจาก XSS เพราะใช้ <code>textContent</code></p>
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: Vanilla JS ES Modules">
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>ตรง TR-05 100%, เบา, ไม่ต้อง build step</li><li>ปลอดภัยจาก XSS เพราะใช้ <code>textContent</code> ทุกช่อง</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ไฟล์ <code>my-schedule-main.js</code> (556 บรรทัด) และ <code>my-schedule-renderer.js</code> (510 บรรทัด) เริ่มยาว</li><li>ต้องซ่อน/แสดง <code>element.style.display</code> เองทีละ 10 ตัวแปร</li></ul></div></div>
       </div>
-      <div class="tab-panel" data-label="ทางเลือก A: Event Delegation">
-        <p>ตอนนี้ใน <code>my-schedule-renderer.js</code> ผูก <code>addEventListener('click')</code> บนปุ่ม Select/Remove/Change ทีละแถว สามารถลดจำนวน listener ให้เหลืออันเดียวที่ <code>&lt;tbody&gt;</code> ได้:</p>
+      <div class="tab-panel" data-label="ทางเลือก A: Event Delegation + Promise Dialog">
         <script type="text/x-code">
-          // แปะ data-course-id และ data-section ไว้บน <button> แล้วฟังที่ tbody จุดเดียว
+          // 1) Event Delegation: ผูก listener ที่ <tbody> จุดเดียว แทนสร้าง callback ใหม่ทุกปุ่มทุกครั้งที่ render
           tbody.addEventListener('click', (e) => {
             const btn = e.target.closest('button[data-action]');
             if (!btn) return;
@@ -138,10 +263,14 @@ flowchart TD
             if (btn.dataset.action === 'select') handleSelect(courseId, Number(btn.dataset.section));
             if (btn.dataset.action === 'remove') handleRemove(courseId);
           });
+
+          // 2) Promise wrapper ให้ <dialog> อ่านตรงลงมาไม่ต้องซ้อน callback
+          const confirmed = await confirmDialog(`Remove ${code} section ${sec}?`);
+          if (confirmed) await removeCourseSelection(studentId, courseId);
         </script>
       </div>
-      <div class="tab-panel" data-label="ทางเลือก B: React / Vue (นอกวิชา)">
-        <p>ในงานจริงนอกวิชานี้ state อย่าง <code>schedules</code>, <code>selections</code>, <code>currentView</code> จะถูกจัดการด้วย React (<code>useState</code> / TanStack Query) หรือ Vue — ข้อดีคือไม่ต้องเขียน <code>tbody.innerHTML = ''</code> และ <code>el.style.display = 'none'</code> เองทีละ 10 ตัวแปรแบบใน <code>showNotStudentMessage()</code></p>
+      <div class="tab-panel" data-label="ทางเลือก B: React / Vue (นอกข้อบังคับวิชา)">
+        <p class="small">ในงานจริงนอกวิชานี้ สามารถใช้ <b>React + TanStack Query</b> หรือ <b>Vue</b> จัดการ state (<code>schedules</code>, <code>selections</code>, <code>sessionsCache</code>) และ re-render อัตโนมัติ ลดโค้ดจัดการ DOM ด้วยมือได้กว่า 60% รวมถึงแยก <code>modal.js</code> ไม่ให้ <code>index.html</code> ต้อง import <code>auth.js</code> ติดมาด้วย</p>
       </div>
     </div>
 
