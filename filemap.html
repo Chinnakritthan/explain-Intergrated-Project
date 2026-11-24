@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Interactive File Map | ITB-CSV Explained</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="filemap">
+<div class="layout wide">
+  <main>
+
+    <section class="hero">
+      <div class="kicker">INTERACTIVE DEPENDENCY EXPLORER</div>
+      <h1>🗺️ File Map — ไฟล์ไหนโยงไปไหน ทั้งโปรเจกต์</h1>
+      <p class="lead">คลิกที่ไฟล์ใดก็ได้ใน <code>int504-2026-project-group-43</code> เพื่อดูว่า <b>ไฟล์นี้ทำอะไร</b>, <b>ใครเรียกมัน</b>, <b>มันเรียกใครต่อ</b> (รวมทั้งการยิง HTTP ข้าม Frontend ↔ Backend) และ <b>ทางเลือกอื่นที่ใช้แทนได้</b></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px" id="fm-filters">
+        <button class="btn primary" data-filter="all">ทั้งหมด</button>
+        <button class="btn" data-filter="fe">🎨 Frontend</button>
+        <button class="btn" data-filter="auth">🔐 Auth</button>
+        <button class="btn" data-filter="be">⚙️ Backend</button>
+        <button class="btn" data-filter="db">🗄️ Database</button>
+        <button class="btn" data-filter="infra">🚀 CI / Infra</button>
+        <span style="width:1px;background:var(--line);margin:0 4px"></span>
+        <button class="btn" data-sprint="1">Sprint 1</button>
+        <button class="btn" data-sprint="2">Sprint 2</button>
+        <button class="btn" data-sprint="3">Sprint 3</button>
+      </div>
+    </section>
+
+    <div class="fm">
+      <div>
+        <input class="fm-search" id="fm-search" placeholder="🔍 ค้นหาชื่อไฟล์ หรือหน้าที่ เช่น clash, auth, prisma...">
+        <div class="fm-list" id="fm-list"></div>
+      </div>
+      <div class="fm-detail" id="fm-detail"></div>
+    </div>
+
+  </main>
+</div>
+<script type="module" src="assets/app.js"></script>
+<script>
+(() => {
+  const LAYER_COLOR = { fe: 'var(--fe)', auth: 'var(--auth)', be: 'var(--be)', db: 'var(--db)', infra: 'var(--infra)' };
+  const LAYER_NAME  = { fe: 'FRONTEND', auth: 'AUTH', be: 'BACKEND', db: 'DATABASE', infra: 'INFRA / CI' };
+
+  const FILES = [
+    // --- Frontend ---
+    { id:'frontend/index.html', layer:'fe', sprints:[1,2], grp:'Frontend · HTML & CSS',
+      desc:'หน้าแรกสำหรับ Guest (PBI1–2): มีปุ่ม All / Year 1–4, ตาราง schedule-table, error-dialog และลิงก์ไป my-schedule.html',
+      imports:['frontend/js/main.js','frontend/css/style.css'],
+      alt:'ใช้ MPA 2 ไฟล์ (index.html + my-schedule.html) ทำให้หน้าแรกไม่ต้องโหลด Keycloak — ทางเลือกคือ SPA ไฟล์เดียวพร้อม router (เช่น React/Vue)' },
+    { id:'frontend/my-schedule.html', layer:'fe', sprints:[2,3], grp:'Frontend · HTML & CSS',
+      desc:'หน้าสำหรับผู้ใช้ที่ Sign-in แล้ว (Student & Lecturer): ถือทั้งมุมมอง Courses, Teaching Schedule, Weekly Timetable และ <dialog> ทั้ง 5 ตัว',
+      imports:['frontend/js/my-schedule-main.js','frontend/css/style.css'],
+      alt:'อาจแยกเป็น student.html กับ lecturer.html ได้ แต่สเปกวิชากำหนดให้ใช้ my-schedule.html ร่วมกัน' },
+    { id:'frontend/css/style.css', layer:'fe', sprints:[1,2,3], grp:'Frontend · HTML & CSS',
+      desc:'สไตล์ชีตธีม Apple Liquid Glass (Dark/Light mode อัตโนมัติด้วย CSS Custom Properties)',
+      imports:[],
+      alt:'Tailwind CSS หรือ CSS Modules (แต่ Vanilla CSS ล้วนไม่ต้องการ build step)' },
+    { id:'frontend/serve.json', layer:'infra', sprints:[2], grp:'Frontend · HTML & CSS',
+      desc:'ตั้งค่า cleanUrls: false สำหรับ npx serve เพื่อไม่ให้ตัด .html ออกจาก URL จน redirect URI ของ Keycloak พัง',
+      imports:[],
+      alt:'ใช้ python3 -m http.server 5173 หรือ nginx แทน npx serve' },
+    { id:'frontend/js/main.js', layer:'fe', sprints:[1], grp:'Frontend · Entry & API',
+      desc:'Entry point ของ index.html: ผูก filter เข้ากับ fetchSchedules และ renderTable + เปิด error modal เมื่อพัง',
+      imports:['frontend/js/api.js','frontend/js/components/table-renderer.js','frontend/js/components/modal.js','frontend/js/components/filter.js'],
+      alt:'เพิ่ม window.addEventListener("popstate", ...) เพื่อรองรับปุ่ม Back/Forward ของเบราว์เซอร์' },
+    { id:'frontend/js/api.js', layer:'fe', sprints:[1], grp:'Frontend · Entry & API',
+      desc:'ยิง GET /api/v1/schedules[?yearLevel=] พร้อมระบบ cache (allSchedulesCache + yearCache) เพื่อไม่ยิงซ้ำ (TR-06)',
+      imports:['backend/src/routes/schedule.routes.js'],
+      alt:'เก็บ Map<year, Promise> แทนผลลัพธ์ เพื่อกันการกดปุ่มเดิมรัว ๆ ระหว่างรอ response แรก' },
+    { id:'frontend/js/my-schedule-main.js', layer:'fe', sprints:[2,3], grp:'Frontend · Entry & API',
+      desc:'สมองหลักของหน้า my-schedule.html: ตรวจ login, เก็บ state (schedules, selections, sessionsCache), จัดการ Select/Remove/Change/Clash และ URL routing ของ PBI12',
+      imports:['frontend/js/auth.js','frontend/js/my-schedule-api.js','frontend/js/timetable-api.js','frontend/js/components/my-schedule-renderer.js','frontend/js/components/timetable-renderer.js','frontend/js/components/modal.js','frontend/js/utils/date-utils.js'],
+      alt:'ไฟล์นี้ยาว 556 บรรทัด — สามารถแตกส่วน Student Actions (Select/Remove/Change) ออกเป็นอีกโมดูลเพื่อให้อ่านง่ายขึ้น' },
+    { id:'frontend/js/my-schedule-api.js', layer:'fe', sprints:[2,3], grp:'Frontend · Entry & API',
+      desc:'ยิง API ที่ต้องมี Token: profile, year-levels, selections (GET/POST/PUT/DELETE) และ lecturer schedules ผ่าน authFetch()',
+      imports:['frontend/js/auth.js','backend/src/routes/student.routes.js','backend/src/routes/year-level.routes.js','backend/src/routes/lecturer.routes.js'],
+      alt:'รวมฟังก์ชันช่วย handle 400/401/403 กับ timetable-api.js ไว้ในไฟล์ api-client.js กลางเพื่อลดโค้ดซ้ำ' },
+    { id:'frontend/js/timetable-api.js', layer:'fe', sprints:[3], grp:'Frontend · Entry & API',
+      desc:'ยิง API สำหรับ Weekly Timetable (PBI12): GET /semester (open), GET /students/:id/sessions, GET /lecturers/:u/sessions',
+      imports:['frontend/js/auth.js','backend/src/routes/academic.routes.js','backend/src/routes/student.routes.js','backend/src/routes/lecturer.routes.js'],
+      alt:'สามารถรวมไว้ใน my-schedule-api.js หรือใช้ axios instance พร้อม interceptor' },
+    { id:'frontend/js/config.js', layer:'auth', sprints:[2], grp:'Frontend · Auth',
+      desc:'เก็บค่าคอนฟิก Keycloak (url, realm: itb-csv, clientId: ip26-zap)',
+      imports:[],
+      alt:'โหลด config แบบ dynamic จาก endpoint ของ backend (เช่น GET /api/v1/config) จะได้ไม่ต้องแก้โค้ดเมื่อเปลี่ยน environment' },
+    { id:'frontend/js/auth.js', layer:'auth', sprints:[2,3], grp:'Frontend · Auth',
+      desc:'คุม Keycloak: requireSignIn() (OIDC + PKCE S256), signOut(), และ authFetch() ที่ต่ออายุ token ล่วงหน้าด้วย updateToken(30)',
+      imports:['frontend/js/vendor/keycloak.js','frontend/js/config.js'],
+      alt:'ใช้ oidc-client-ts (ไม่ผูกติด Keycloak) หรือทำ Backend-for-Frontend (BFF) เก็บ session ใน HttpOnly cookie' },
+    { id:'frontend/js/vendor/keycloak.js', layer:'auth', sprints:[2], grp:'Frontend · Auth',
+      desc:'ไลบรารี keycloak-js 26.2.5 (ES Module) คัดลอกมาจาก node_modules เพื่อใช้งานตรง ๆ โดยไม่ต้องมี bundler',
+      imports:[],
+      alt:'โหลดผ่าน CDN หรือใช้ bundler อย่าง Vite (ถ้าไม่ได้ติดข้อจำกัดแบบง่ายของวิชา)' },
+    { id:'frontend/js/components/filter.js', layer:'fe', sprints:[1,3], grp:'Frontend · Components & Utils',
+      desc:'คุมปุ่ม All / Year 1–4, อัปเดต aria-pressed, ซิงก์ ?yearLevel ใน URL และลบค่าผิดด้วย replaceState (PBI9)',
+      imports:[],
+      alt:'ใช้ <a href="?yearLevel=2"> แทน <button> แล้ว e.preventDefault() จะได้เปิดแท็บใหม่ได้ด้วย' },
+    { id:'frontend/js/components/table-renderer.js', layer:'fe', sprints:[1], grp:'Frontend · Components & Utils',
+      desc:'วาดตารางของหน้า Guest (9 คอลัมน์ ไม่มี Room) ด้วย document.createElement + textContent (กัน XSS)',
+      imports:['frontend/js/utils/formatters.js','frontend/js/components/modal.js'],
+      alt:'ใช้ column-config array + loop หรือแท็ก <template> เพื่อลดโค้ดซ้ำ' },
+    { id:'frontend/js/components/modal.js', layer:'fe', sprints:[1,3], grp:'Frontend · Components & Utils',
+      desc:'คุมข้อความ Empty, Fatal Error Dialog (กันกด Esc ปิด) และ Session Dialog (401/403)',
+      imports:['frontend/js/auth.js'],
+      alt:'แยก showSessionModal ไปไว้ใน my-schedule-renderer.js เพื่อไม่ให้ index.html ต้อง import auth.js ติดมาด้วย' },
+    { id:'frontend/js/components/my-schedule-renderer.js', layer:'fe', sprints:[2,3], grp:'Frontend · Components & Utils',
+      desc:'วาดตาราง My Schedule, Courses to Choose, Teaching Schedule และคุม Dialog ทั้ง 3 ตัว (Message/Confirm, Change radio, Clash warning)',
+      imports:['frontend/js/utils/formatters.js'],
+      alt:'ห่อ dialog เป็น Promise (await confirmDialog(...)) และใช้ Event Delegation บน <tbody> แทนผูก listener ทีละปุ่ม' },
+    { id:'frontend/js/components/timetable-renderer.js', layer:'fe', sprints:[3], grp:'Frontend · Components & Utils',
+      desc:'วาดหน้า Weekly Timetable: ป้าย W14 · dd/mm/yyyy, วันหยุด, ตาราง session, ปุ่ม Previous/Next/First/Last Week และข้อความนอกเทอม',
+      imports:['frontend/js/utils/formatters.js','frontend/js/utils/date-utils.js'],
+      alt:'แสดงเป็นปฏิทินกริด 7 คอลัมน์ (จ.–อา.) ควบคู่กับตารางได้ (แต่ตารางต้องคง data-testid ตาม UI Contract)' },
+    { id:'frontend/js/utils/formatters.js', layer:'fe', sprints:[1,3], grp:'Frontend · Components & Utils',
+      desc:'ฟังก์ชันบริสุทธิ์แปลงข้อความ: formatDay ("TUESDAY"→"Tuesday"), formatTime, formatWeeks, formatLecturers',
+      imports:[],
+      alt:'ใช้ Intl.ListFormat หรือ object map สำหรับชื่อวัน' },
+    { id:'frontend/js/utils/date-utils.js', layer:'fe', sprints:[3], grp:'Frontend · Components & Utils',
+      desc:'คำนวณวันที่แบบ UTC ปลอดภัย: getTodayBangkok(), isValidIsoDate(), mondayOf(), plusDays(), formatDmy(), isWeekOutsideSemester()',
+      imports:[],
+      alt:'ใช้ไลบรารี Day.js / Luxon / Temporal API (แต่เขียนเอง 54 บรรทัดเบาและไม่มี dependency)' },
+
+    // --- Backend ---
+    { id:'backend/src/server.js', layer:'be', sprints:[1], grp:'Backend · Entry & Config',
+      desc:'จุดเริ่มต้นรัน Express: โหลด dotenv/config เป็นบรรทัดแรกแล้ว app.listen(PORT)',
+      imports:['backend/src/app.js'],
+      alt:'ใช้ Node.js v22 flag --env-file=.env แทนแพ็กเกจ dotenv ได้' },
+    { id:'backend/src/app.js', layer:'be', sprints:[1,2,3], grp:'Backend · Entry & Config',
+      desc:'ประกอบ Express app: เปิด cors(), บังคับ header UTF-8, เมานต์ router ทั้ง 6 ตัว และต่อ errorHandler ไว้ท้ายสุด',
+      imports:['backend/src/routes/health.routes.js','backend/src/routes/schedule.routes.js','backend/src/routes/student.routes.js','backend/src/routes/year-level.routes.js','backend/src/routes/lecturer.routes.js','backend/src/routes/academic.routes.js','backend/src/middleware/errorHandler.js'],
+      alt:'ใช้ Fastify หรือ Hono แทน Express (ได้ performance และ schema validation ในตัว)' },
+    { id:'backend/src/config/prisma.js', layer:'db', sprints:[1,2,3], grp:'Backend · Entry & Config',
+      desc:'สร้าง Singleton instance ของ PrismaClient เพื่อให้ทุก repository แชร์ connection pool เดียวกัน',
+      imports:['backend/prisma/schema.prisma'],
+      alt:'Drizzle ORM, Knex, หรือ Sequelize (แต่ TR-05 กำหนดให้ใช้ Prisma)' },
+    { id:'backend/src/config/db.js', layer:'db', sprints:[1], grp:'Backend · Entry & Config',
+      desc:'⚠️ ไฟล์เก่า (Legacy): สร้าง mysql2 connection pool จากช่วงต้น Sprint 1 — ปัจจุบันไม่มีไฟล์ไหน import แล้ว (เปลี่ยนไปใช้ Prisma ทั้งหมด)',
+      imports:[],
+      alt:'สามารถลบไฟล์นี้และถอด mysql2 ออกจาก package.json ได้หากไม่ใช้ raw connection pool' },
+
+    // Routes
+    { id:'backend/src/routes/health.routes.js', layer:'be', sprints:[1], grp:'Backend · Routes',
+      desc:'GET /api/v1/health (Open) → เช็คสถานะระบบและชื่อทีม',
+      imports:['backend/src/controllers/health.controller.js'],
+      alt:'เขียน app.get("/api/v1/health", ...) ใน app.js ตรง ๆ ได้ แต่แยกไฟล์ให้เป็นมาตรฐานเดียวกัน' },
+    { id:'backend/src/routes/schedule.routes.js', layer:'be', sprints:[1,3], grp:'Backend · Routes',
+      desc:'GET /api/v1/schedules[?yearLevel=] (Open) → validate query แล้วเรียก controller',
+      imports:['backend/src/controllers/schedule-filter.controller.js','backend/src/middleware/validate.js'],
+      alt:'—' },
+    { id:'backend/src/routes/student.routes.js', layer:'be', sprints:[2,3], grp:'Backend · Routes',
+      desc:'รวม 7 เส้นใต้ /api/v1/students/*: บังคับ requireAccessToken → requireRole("student") → requireSelf → express.json() → validate → controller',
+      imports:['backend/src/controllers/student.controller.js','backend/src/controllers/selection.controller.js','backend/src/middleware/validate.js','backend/src/middleware/auth.middleware.js'],
+      alt:'แตก /selections เป็น sub-router แยกด้วย express.Router({ mergeParams: true })' },
+    { id:'backend/src/routes/year-level.routes.js', layer:'be', sprints:[2,3], grp:'Backend · Routes',
+      desc:'GET /api/v1/year-levels/:yearLevel/schedules (student หรือ lecturer) → ตรวจ token, role, param',
+      imports:['backend/src/controllers/year-level.controller.js','backend/src/middleware/validate.js','backend/src/middleware/auth.middleware.js'],
+      alt:'—' },
+    { id:'backend/src/routes/lecturer.routes.js', layer:'be', sprints:[3], grp:'Backend · Routes',
+      desc:'GET /api/v1/lecturers/:username/schedules และ /sessions (lecturer + self)',
+      imports:['backend/src/controllers/lecturer.controller.js','backend/src/middleware/auth.middleware.js','backend/src/middleware/validate.js'],
+      alt:'—' },
+    { id:'backend/src/routes/academic.routes.js', layer:'be', sprints:[3], grp:'Backend · Routes',
+      desc:'GET /api/v1/semester (Open) → คืนวันเปิด-ปิดเทอมให้ Frontend ใช้ตัดสินใจมุมมองเริ่มต้น',
+      imports:['backend/src/controllers/academic.controller.js'],
+      alt:'—' },
+
+    // Middleware
+    { id:'backend/src/middleware/auth.middleware.js', layer:'auth', sprints:[3], grp:'Backend · Middleware',
+      desc:'PBI10: ตรวจ JWT ด้วย jose (JWKS signature, iss, exp, azp === TEAM_CODE) → 401 และ requireRole / requireSelf → 403',
+      imports:['backend/src/middleware/errorHandler.js'],
+      alt:'express-oauth2-jwt-bearer หรือ jsonwebtoken + jwks-rsa' },
+    { id:'backend/src/middleware/validate.js', layer:'be', sprints:[1,3], grp:'Backend · Middleware',
+      desc:'PBI9: ตรวจสอบ params/query/body ทุกเส้น เก็บ field ที่ผิดทั้งหมดลง array แล้วส่ง 400 RFC 9457',
+      imports:['backend/src/middleware/errorHandler.js'],
+      alt:'Zod, Joi, หรือ express-validator เพื่อประกาศ schema แบบ declarative' },
+    { id:'backend/src/middleware/errorHandler.js', layer:'be', sprints:[1,3], grp:'Backend · Middleware',
+      desc:'ศูนย์รวม Error กลาง (PROBLEM_TYPES, AppError, errorHandler): ดัก JSON SyntaxError และแปลง 4xx ทุกตัวเป็น application/problem+json (RFC 9457)',
+      imports:[],
+      alt:'ใช้ไลบรารี http-errors หรือ problem-json ช่วยสร้างโครงสร้าง RFC 9457' },
+
+    // Controllers
+    { id:'backend/src/controllers/health.controller.js', layer:'be', sprints:[1], grp:'Backend · Controllers',
+      desc:'ตอบ { status: "ok", team: process.env.TEAM_CODE || "ip26-zap" }',
+      imports:[], alt:'อาจเพิ่มเช็ค SELECT 1 กับ DB เพื่อตรวจว่าฐานข้อมูลยังต่อติดด้วย' },
+    { id:'backend/src/controllers/schedule-filter.controller.js', layer:'be', sprints:[1], grp:'Backend · Controllers',
+      desc:'รับ GET /schedules: ไม่มี yearLevel เรียก PBI1 (All) ถ้ามีเรียก PBI2 (By Year)',
+      imports:['backend/src/services/schedule.service.js','backend/src/services/schedule-filter.service.js'],
+      alt:'รวม schedule.service กับ schedule-filter.service เป็น service เดียวรับพารามิเตอร์ optional yearLevel' },
+    { id:'backend/src/controllers/schedule.controller.js', layer:'be', sprints:[1], grp:'Backend · Controllers',
+      desc:'⚠️ ไฟล์เก่า (Legacy): Controller เวอร์ชัน PBI1 ก่อนรวมกับ PBI2 — ปัจจุบันไม่มี route ไหนเรียกใช้แล้ว',
+      imports:['backend/src/services/schedule.service.js'], alt:'ลบทิ้งได้เพื่อลดความสับสน' },
+    { id:'backend/src/controllers/student.controller.js', layer:'be', sprints:[2,3], grp:'Backend · Controllers',
+      desc:'รับ GET /:studentId (โปรไฟล์) และ GET /:studentId/sessions (ตารางรายสัปดาห์)',
+      imports:['backend/src/services/student.service.js'], alt:'ใน Express 5 ไม่ต้องเขียน try/catch ส่ง next(err) เอง' },
+    { id:'backend/src/controllers/selection.controller.js', layer:'be', sprints:[2,3], grp:'Backend · Controllers',
+      desc:'รับ CRUD ทั้ง 5 ของ selections (GET 200, POST 201, PUT 200, DELETE 204, reset 204)',
+      imports:['backend/src/services/selection.service.js'], alt:'—' },
+    { id:'backend/src/controllers/year-level.controller.js', layer:'be', sprints:[2], grp:'Backend · Controllers',
+      desc:'รับ GET /year-levels/:yearLevel/schedules?studentGroup=',
+      imports:['backend/src/services/year-level.service.js'], alt:'—' },
+    { id:'backend/src/controllers/lecturer.controller.js', layer:'be', sprints:[3], grp:'Backend · Controllers',
+      desc:'รับ GET /lecturers/:username/schedules และ /sessions',
+      imports:['backend/src/services/lecturer.service.js'], alt:'—' },
+    { id:'backend/src/controllers/academic.controller.js', layer:'be', sprints:[3], grp:'Backend · Controllers',
+      desc:'รับ GET /semester ส่งต่อให้ academicService.getSemester()',
+      imports:['backend/src/services/academic.service.js'], alt:'—' },
+
+    // Services
+    { id:'backend/src/services/schedule.service.js', layer:'be', sprints:[1], grp:'Backend · Services',
+      desc:'ดึงตารางเรียนทั้งหมด → format (ตัด room) → sort 6 ขั้นตาม PBI1',
+      imports:['backend/src/repositories/schedule.repository.js','backend/src/utils/schedule.formatter.js','backend/src/utils/schedule.sorter.js'],
+      alt:'ให้ Prisma/MySQL เรียง orderBy ใน DB แทน sort ใน JS' },
+    { id:'backend/src/services/schedule-filter.service.js', layer:'be', sprints:[1], grp:'Backend · Services',
+      desc:'ดึงตารางเรียนเฉพาะชั้นปี → format → sort',
+      imports:['backend/src/repositories/schedule.repository.js','backend/src/utils/schedule.formatter.js','backend/src/utils/schedule.sorter.js'],
+      alt:'รวมเป็นฟังก์ชันเดียวกับ schedule.service.js' },
+    { id:'backend/src/services/year-level.service.js', layer:'be', sprints:[2,3], grp:'Backend · Services',
+      desc:'ตัดสินใจ fixed vs option (CORE+group, CORE+1sec, ELECTIVE), กรองตาม studentGroup (เก็บ null ด้วย!) และแนบ lecturers[]',
+      imports:['backend/src/repositories/schedule.repository.js','backend/src/utils/schedule.formatter.js','backend/src/utils/schedule.sorter.js'],
+      alt:'คำนวณ sectionCount ด้วย SQL Window Function COUNT(DISTINCT section) OVER (PARTITION BY course_id)' },
+    { id:'backend/src/services/student.service.js', layer:'be', sprints:[2,3], grp:'Backend · Services',
+      desc:'ถอดรหัสนักศึกษา 11 หลัก (ปีเข้า/รหัสหลักสูตร/กลุ่ม A-B) และประกอบ weekly sessions ของนักศึกษา (fixed + selected)',
+      imports:['backend/src/middleware/errorHandler.js','backend/src/repositories/student.repository.js','backend/src/repositories/selection.repository.js','backend/src/services/year-level.service.js','backend/src/utils/week.util.js','backend/src/utils/session.formatter.js','backend/src/services/academic.service.js'],
+      alt:'แยก getStudentSessions ไปไว้ใน session.service.js เพื่อลดขนาดไฟล์' },
+    { id:'backend/src/services/selection.service.js', layer:'be', sprints:[2,3], grp:'Backend · Services',
+      desc:'กฎธุรกิจเลือก/ถอน/เปลี่ยน section + PBI11 ตรวจเวลาชน (isScheduleClashing: วัน+เวลา+สัปดาห์) พร้อม acceptClash และ excludeCourseId',
+      imports:['backend/src/repositories/selection.repository.js','backend/src/services/student.service.js','backend/src/middleware/errorHandler.js','backend/src/services/year-level.service.js'],
+      alt:'ดึง logic ตรวจ clash ออกไปเป็น pure utility (clash.util.js) เพื่อให้เขียน unit test แยกง่าย' },
+    { id:'backend/src/services/lecturer.service.js', layer:'be', sprints:[3], grp:'Backend · Services',
+      desc:'PBI8 & PBI12 สำหรับอาจารย์: ตรวจว่ามีชื่อใน lecturers ไหม (404 lecturer-not-found), ดึงตารางสอนและ weekly sessions (ไม่ส่ง lecturers[])',
+      imports:['backend/src/repositories/lecturer.repository.js','backend/src/utils/schedule.formatter.js','backend/src/utils/schedule.sorter.js','backend/src/middleware/errorHandler.js','backend/src/utils/week.util.js','backend/src/utils/session.formatter.js','backend/src/services/academic.service.js'],
+      alt:'—' },
+    { id:'backend/src/services/academic.service.js', layer:'be', sprints:[3], grp:'Backend · Services',
+      desc:'ดึงข้อมูลภาคการศึกษา (semester) และข้อมูลสัปดาห์ (label W1..W15 + holidays ของสัปดาห์นั้น)',
+      imports:['backend/src/repositories/academic.repository.js','backend/src/utils/week.util.js','backend/src/utils/session.formatter.js'],
+      alt:'cache ข้อมูล academic_settings ใน memory (เปลี่ยนแค่ปีละ 2 ครั้ง) เพื่อลด DB query' },
+
+    // Repositories & Utils
+    { id:'backend/src/repositories/schedule.repository.js', layer:'db', sprints:[1,2,3], grp:'Backend · Repositories & Utils',
+      desc:'Query ตาราง courses_schedule พร้อม include course และ scheduleLecturers',
+      imports:['backend/src/config/prisma.js'], alt:'Raw SQL JOIN ผ่าน mysql2' },
+    { id:'backend/src/repositories/student.repository.js', layer:'db', sprints:[2,3], grp:'Backend · Repositories & Utils',
+      desc:'Query academic_settings, student_group_ranges และ sessions ของนักศึกษา',
+      imports:['backend/src/config/prisma.js'], alt:'—' },
+    { id:'backend/src/repositories/selection.repository.js', layer:'db', sprints:[2], grp:'Backend · Repositories & Utils',
+      desc:'CRUD ตาราง selections — ใช้ $executeRaw พร้อม UTC_TIMESTAMP(3) เพื่อให้เวลาตรงนาฬิกาของ MySQL',
+      imports:['backend/src/config/prisma.js'], alt:'Prisma create/update โดยให้ MySQL ใช้ DEFAULT CURRENT_TIMESTAMP(3)' },
+    { id:'backend/src/repositories/lecturer.repository.js', layer:'db', sprints:[3], grp:'Backend · Repositories & Utils',
+      desc:'Query ตาราง lecturers, schedule_lecturer และ sessions ของอาจารย์',
+      imports:['backend/src/config/prisma.js'], alt:'—' },
+    { id:'backend/src/repositories/academic.repository.js', layer:'db', sprints:[3], grp:'Backend · Repositories & Utils',
+      desc:'Query ตาราง academic_settings, academic_weeks และ holidays',
+      imports:['backend/src/config/prisma.js'], alt:'—' },
+    { id:'backend/src/utils/schedule.formatter.js', layer:'be', sprints:[1,2,3], grp:'Backend · Repositories & Utils',
+      desc:'แปลงเวลาเป็น HH:MM (UTC) และปั้น shape JSON ให้ตรง TR-08 สำหรับ Guest, Year-Level และ Lecturer',
+      imports:[], alt:'ใช้ TIME_FORMAT ใน SQL หรือ toISOString().slice(11,16)' },
+    { id:'backend/src/utils/schedule.sorter.js', layer:'be', sprints:[1], grp:'Backend · Repositories & Utils',
+      desc:'เรียงตารางเรียน 6 ขั้นตาม PBI1: yearLevel → course.id → section → day (จ.–อา.) → startTime → id',
+      imports:[], alt:'ORDER BY ใน Prisma หรือ SQL FIELD(day_of_week, ...)' },
+    { id:'backend/src/utils/session.formatter.js', layer:'be', sprints:[3], grp:'Backend · Repositories & Utils',
+      desc:'จัดรูปแบบ session (รองรับสลับเปิด/ปิด lecturers[]) และ holiday ให้ตรงสเปก PBI12',
+      imports:['backend/src/utils/schedule.formatter.js'], alt:'—' },
+    { id:'backend/src/utils/week.util.js', layer:'be', sprints:[3], grp:'Backend · Repositories & Utils',
+      desc:'คำนวณช่วงวันจันทร์–อาทิตย์ (startDate, endDate) จากวันที่ใดก็ได้ในสัปดาห์นั้น',
+      imports:[], alt:'ใช้ date-fns (startOfWeek / endOfWeek)' },
+
+    // DB & Infra
+    { id:'backend/prisma/schema.prisma', layer:'db', sprints:[1,2,3], grp:'Database & CI',
+      desc:'ประกาศทั้ง 11 Models + 4 Enums map ระหว่าง snake_case ของ MySQL กับ camelCase ของ JavaScript',
+      imports:['database/init.sql'], alt:'รัน npx prisma db pull เพื่อดึง schema จาก DB จริงอัตโนมัติ' },
+    { id:'database/init.sql', layer:'db', sprints:[1,2,3], grp:'Database & CI',
+      desc:'ไฟล์สร้างฐานข้อมูล zap_setdb ทั้ง 11 ตาราง + Seed ครบทุก Sprint + CTE สร้าง 1,181 sessions (SET NAMES utf8mb4)',
+      imports:[], alt:'Prisma Migrate + prisma/seed.js' },
+    { id:'db_design/sprint2_migration.sql', layer:'db', sprints:[2], grp:'Database & CI',
+      desc:'Migration แบบปลอดภัย (IF NOT EXISTS / INSERT IGNORE) สำหรับอัปเกรด DB จาก Sprint 1 → Sprint 2',
+      imports:[], alt:'Flyway / Liquibase / Prisma Migrate' },
+    { id:'db_design/sprint3_migration.sql', layer:'db', sprints:[3], grp:'Database & CI',
+      desc:'Migration แบบ Idempotent สำหรับ MySQL 8.4 (ใช้ PREPARE/EXECUTE เพิ่มคอลัมน์ + สร้างตาราง PBI8/12 + สร้าง 1,181 sessions)',
+      imports:[], alt:'Flyway / Prisma Migrate' },
+    { id:'.github/workflows/ci.yml', layer:'infra', sprints:[1,2,3], grp:'Database & CI',
+      desc:'GitHub Actions Quality Gate (808 บรรทัด): เช็ค syntax/TR-05, import MySQL, ตรวจ Prisma, เปิด Mock JWKS Server ยิงเทส PBI 1–12 อัตโนมัติ',
+      imports:['database/init.sql','backend/prisma/schema.prisma','backend/src/server.js'],
+      alt:'แยกสคริปต์เทสออกมาเป็น Vitest + Supertest เพื่อให้รันบนเครื่องนักพัฒนาได้ด้วย' },
+  ];
+
+  // Build reverse index (importedBy)
+  const map = new Map(FILES.map(f => [f.id, { ...f, importedBy: [] }]));
+  for (const f of map.values()) {
+    for (const target of f.imports) {
+      if (map.has(target)) map.get(target).importedBy.push(f.id);
+    }
+  }
+
+  let activeLayer = 'all';
+  let activeSprint = null;
+  let search = '';
+  let selectedId = 'frontend/js/my-schedule-main.js';
+
+  const listEl = document.getElementById('fm-list');
+  const detailEl = document.getElementById('fm-detail');
+  const searchEl = document.getElementById('fm-search');
+
+  function renderList() {
+    const sel = map.get(selectedId);
+    const related = new Set(sel ? [sel.id, ...sel.imports, ...sel.importedBy] : []);
+
+    const filtered = [...map.values()].filter(f => {
+      if (activeLayer !== 'all' && f.layer !== activeLayer) return false;
+      if (activeSprint && !f.sprints.includes(activeSprint)) return false;
+      if (search) {
+        const q = search.toLowerCase();
+        if (!f.id.toLowerCase().includes(q) && !f.desc.toLowerCase().includes(q)) return false;
+      }
+      return true;
+    });
+
+    const groups = new Map();
+    for (const f of filtered) {
+      if (!groups.has(f.grp)) groups.set(f.grp, []);
+      groups.get(f.grp).push(f);
+    }
+
+    if (filtered.length === 0) {
+      listEl.innerHTML = '<div style="padding:18px" class="muted">ไม่พบไฟล์ที่ตรงเงื่อนไข</div>';
+      return;
+    }
+
+    let html = '';
+    for (const [grp, items] of groups) {
+      html += `<div class="grp">${grp} (${items.length})</div>`;
+      for (const f of items) {
+        const isAct = f.id === selectedId;
+        const isDim = sel && !related.has(f.id) && !search;
+        html += `<button data-id="${f.id}" class="${isAct ? 'active' : ''} ${isDim ? 'dim' : ''}">
+          <span class="lay" style="background:${LAYER_COLOR[f.layer]}"></span>${f.id.replace(/^(frontend|backend)\//, '$1/')}
+        </button>`;
+      }
+    }
+    listEl.innerHTML = html;
+    listEl.querySelectorAll('button[data-id]').forEach(btn => {
+      btn.addEventListener('click', () => select(btn.dataset.id));
+    });
+  }
+
+  function renderDetail() {
+    const f = map.get(selectedId);
+    if (!f) return;
+    const mkList = (arr, emptyMsg) => arr.length
+      ? `<ul>${arr.map(id => {
+          const t = map.get(id);
+          const col = t ? LAYER_COLOR[t.layer] : 'var(--muted)';
+          return `<li style="margin:6px 0"><button data-jump="${id}"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${col};margin-right:7px"></span>${id}</button></li>`;
+        }).join('')}</ul>`
+      : `<p class="muted small">${emptyMsg}</p>`;
+
+    const sprintBadges = f.sprints.map(s => `<a href="sprint${s}.html" class="badge gray">Sprint ${s}</a>`).join(' ');
+    const unusedWarn = (f.importedBy.length === 0 && !['frontend/index.html','frontend/my-schedule.html','frontend/serve.json','backend/src/server.js','db_design/sprint2_migration.sql','db_design/sprint3_migration.sql','.github/workflows/ci.yml'].includes(f.id))
+      ? `<div class="callout warn"><span class="t">⚠️ ไม่พบไฟล์ที่ import ไฟล์นี้</span>ไฟล์นี้อาจเป็นไฟล์เก่าจาก Sprint ก่อนที่ถูกแทนที่แล้ว หรือถูกเรียกโดยตรงจากภายนอก</div>` : '';
+
+    detailEl.innerHTML = `
+      <div class="card ${f.layer}">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px">
+          <span class="badge ${f.layer}">${LAYER_NAME[f.layer]}</span>
+          ${sprintBadges}
+        </div>
+        <h2 style="margin:6px 0 10px;border:0;padding:0;font-family:var(--mono);font-size:20px;word-break:break-all">${f.id}</h2>
+        <p>${f.desc}</p>
+        ${unusedWarn}
+        <hr>
+        <div class="rel">
+          <div>
+            <h4 style="margin-top:0">⬅️ ถูกเรียก / ถูก Import โดย (${f.importedBy.length})</h4>
+            ${mkList(f.importedBy, 'ไม่มีไฟล์อื่น import (เป็นจุดเริ่มต้น, config หรือไฟล์เดี่ยว)')}
+          </div>
+          <div>
+            <h4 style="margin-top:0">➡️ เรียกใช้ / Import ต่อไปที่ (${f.imports.length})</h4>
+            ${mkList(f.imports, 'ไม่มีการ import ไฟล์ภายในโปรเจกต์ (เป็น leaf module / pure utility)')}
+          </div>
+        </div>
+        <hr>
+        <h4 style="margin-top:0">🔁 โค้ด / วิธีอื่นที่ใช้แทนได้</h4>
+        <p class="small">${f.alt}</p>
+      </div>
+      <div class="callout note" style="margin-top:14px">
+        <span class="t">💡 ทริกการใช้งาน</span>
+        สังเกตรายชื่อทางซ้าย: ไฟล์ที่ <b>สว่างขึ้น</b> คือไฟล์ที่โยงกับไฟล์ที่คุณเลือกอยู่ ส่วนไฟล์ที่ <b>จางลง</b> คือไฟล์ที่ไม่เกี่ยวข้องโดยตรง — คลิกปุ่มในกล่อง ⬅️ หรือ ➡️ เพื่อกระโดดไล่สายงานต่อได้ทันที!
+      </div>`;
+
+    detailEl.querySelectorAll('[data-jump]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        activeLayer = 'all'; activeSprint = null; search = ''; searchEl.value = '';
+        updateFilterButtons();
+        select(btn.dataset.jump);
+      });
+    });
+  }
+
+  function select(id) {
+    selectedId = id;
+    renderList();
+    renderDetail();
+  }
+
+  function updateFilterButtons() {
+    document.querySelectorAll('#fm-filters button').forEach(b => {
+      const isLayerMatch = b.dataset.filter && b.dataset.filter === activeLayer && !activeSprint;
+      const isSprintMatch = b.dataset.sprint && Number(b.dataset.sprint) === activeSprint;
+      b.classList.toggle('primary', Boolean(isLayerMatch || isSprintMatch));
+    });
+  }
+
+  document.querySelectorAll('#fm-filters button[data-filter]').forEach(b => b.addEventListener('click', () => {
+    activeLayer = b.dataset.filter;
+    activeSprint = null;
+    updateFilterButtons();
+    renderList();
+  }));
+  document.querySelectorAll('#fm-filters button[data-sprint]').forEach(b => b.addEventListener('click', () => {
+    activeSprint = Number(b.dataset.sprint);
+    activeLayer = 'all';
+    updateFilterButtons();
+    renderList();
+  }));
+  searchEl.addEventListener('input', () => { search = searchEl.value.trim(); renderList(); });
+
+  select(selectedId);
+})();
+</script>
+</body>
+</html>

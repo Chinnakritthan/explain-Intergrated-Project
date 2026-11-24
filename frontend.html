@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frontend Architecture | ITB-CSV Explained</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+</head>
+<body data-page="frontend">
+<div class="layout">
+  <aside class="toc"></aside>
+  <main>
+
+    <section class="hero">
+      <div class="kicker">LAYER DEEP DIVE · FRONTEND</div>
+      <h1>🎨 Frontend Architecture — Vanilla JS ES Modules</h1>
+      <p class="lead">โปรเจกต์นี้ห้ามใช้ JS Framework อย่าง React/Vue (TR-05) ทีมจึงออกแบบโครงสร้างแบบ <b>Modular Vanilla JS</b> แยกหน้าที่ชัดเจน ไม่ต้องมี Build Step (Webpack/Vite) เลย</p>
+      <p><span class="badge fe">2 HTML Pages</span> <span class="badge fe">14 JS Modules</span> <span class="badge auth">Keycloak Vendor</span> <span class="badge fe">Liquid Glass CSS</span></p>
+    </section>
+
+    <h2 id="structure">โครงสร้างการแบ่งชั้นใน <code>frontend/js/</code></h2>
+    <p>แม้จะไม่มี React แต่ทีมแบ่งโค้ดออกเป็น 5 บทบาทชัดเจน เพื่อให้แต่ละไฟล์รับผิดชอบงานเดียว (Separation of Concerns):</p>
+
+    <div class="grid c3">
+      <div class="card fe">
+        <h4>1. Entry / Controller</h4>
+        <p class="small"><span class="file fe">main.js</span><br><span class="file fe">my-schedule-main.js</span><br>ถือ State ของหน้า, คุม Routing, เชื่อม API กับ Renderer เข้าด้วยกัน</p>
+      </div>
+      <div class="card fe">
+        <h4>2. API Client</h4>
+        <p class="small"><span class="file fe">api.js</span><br><span class="file fe">my-schedule-api.js</span><br><span class="file fe">timetable-api.js</span><br>คุยกับ Backend อย่างเดียว ไม่ยุ่งกับ DOM</p>
+      </div>
+      <div class="card auth">
+        <h4>3. Auth</h4>
+        <p class="small"><span class="file auth">auth.js</span><br><span class="file auth">config.js</span><br><span class="file auth">vendor/keycloak.js</span><br>Sign-in, Sign-out, <code>authFetch()</code></p>
+      </div>
+      <div class="card fe">
+        <h4>4. UI Components</h4>
+        <p class="small"><span class="file fe">table-renderer.js</span><br><span class="file fe">my-schedule-renderer.js</span><br><span class="file fe">timetable-renderer.js</span><br><span class="file fe">filter.js</span> · <span class="file fe">modal.js</span><br>วาด DOM และคุม <code>&lt;dialog&gt;</code></p>
+      </div>
+      <div class="card fe">
+        <h4>5. Pure Utils</h4>
+        <p class="small"><span class="file fe">utils/formatters.js</span><br><span class="file fe">utils/date-utils.js</span><br>ฟังก์ชันบริสุทธิ์ แปลงข้อความ/วันที่ ไม่พึ่ง DOM หรือ API</p>
+      </div>
+    </div>
+
+    <h2 id="import-graph">แผนผังการ Import ทั้งหมดของ Frontend</h2>
+    <pre class="mermaid">
+flowchart TD
+  subgraph P1["หน้า Guest: index.html"]
+    M1["main.js"] --> API1["api.js"]
+    M1 --> FLT["components/filter.js"]
+    M1 --> TR["components/table-renderer.js"]
+    M1 --> MOD["components/modal.js"]
+    TR --> MOD
+    TR --> FMT["utils/formatters.js"]
+  end
+  subgraph P2["หน้า Signed-in: my-schedule.html"]
+    M2["my-schedule-main.js"] --> AUTH["auth.js"]
+    M2 --> MAPI["my-schedule-api.js"]
+    M2 --> TAPI["timetable-api.js"]
+    M2 --> MREN["components/my-schedule-renderer.js"]
+    M2 --> TREN["components/timetable-renderer.js"]
+    M2 --> MOD
+    M2 --> DT["utils/date-utils.js"]
+    MAPI --> AUTH
+    TAPI --> AUTH
+    MOD --> AUTH
+    AUTH --> CFG["config.js"]
+    AUTH --> KC["vendor/keycloak.js"]
+    MREN --> FMT
+    TREN --> FMT
+    TREN --> DT
+  end
+    </pre>
+
+    <div class="callout note"><span class="t">🔎 สังเกต 1 จุดสำคัญในกราฟนี้!</span>
+      <code>modal.js</code> มี <code>import { signOutToCurrentPage } from "../auth.js"</code> สำหรับปุ่ม Sign Out ใน <code>session-dialog</code> (หน้า <code>my-schedule.html</code>)
+      ซึ่งแปลว่าหน้า <code>index.html</code> จะโหลดไฟล์ <code>auth.js</code> และ <code>vendor/keycloak.js</code> ติดมาด้วยในระดับ ES Module import — <b>แต่ยังปลอดภัยกับ PBI3</b> เพราะ <code>keycloak.init()</code> ไม่ได้ถูกเรียกจนกว่า <code>requireSignIn()</code> จะทำงาน จึงไม่มีการติดต่อ Keycloak จากหน้าแรก</div>
+
+    <h2 id="api-base">จุดน่าสนใจ: ทำไม <code>API_BASE</code> ใน <code>api.js</code> กับ <code>my-schedule-api.js</code> ต่างกัน?</h2>
+    <p>ถ้าอ่านโค้ดจริงจะเห็นความต่างเล็ก ๆ ที่สำคัญมากตอนรัน Playwright:</p>
+    <script type="text/x-code" data-path="frontend/js/api.js vs frontend/js/my-schedule-api.js">
+      // api.js (หน้า index.html)
+      const isLocalDev = window.location.port === '5500' || window.location.port === '5173';
+      const API_URL = isLocalDev ? 'http://localhost:3000/api/v1/schedules' : './api/v1/schedules';
+
+      // my-schedule-api.js และ timetable-api.js (หน้า my-schedule.html — แก้ใน commit 7f79a8e)
+      const isLocalDev = window.location.port === '5500';
+      const API_BASE = isLocalDev ? 'http://localhost:3000/api/v1' : './api/v1';
+    </script>
+    <p class="small"><b>ทำไมต้องเอา <code>5173</code> ออกใน <code>my-schedule-api.js</code>?</b> เพราะตอนรัน Playwright <code>--project=ui</code> บน <code>localhost:5173</code> ตัว test จะดักจับ (stub/intercept) เฉพาะ request ที่วิ่งเข้า <b>origin เดียวกัน</b> (<code>./api/v1/...</code>) เพื่อตรวจ TC-TR-1 และจำลองคำตอบ 401/403/409 — ถ้าโค้ดไปยิง <code>localhost:3000</code> ตรง ๆ ตัว stub จะไม่ทำงาน!</p>
+
+    <h2 id="state">การจัดการ State, Cache และ URL Routing</h2>
+    <p>แนวคิดการคุม state ใน <span class="file fe">my-schedule-main.js</span> คล้าย Mini-SPA โดยไม่ต้องพึ่ง Framework:</p>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>ตัวแปร State</th><th>ชนิดข้อมูล</th><th>หน้าที่</th><th>ล้างเมื่อไหร่?</th></tr></thead>
+        <tbody>
+          <tr><td><code>semesterCache</code></td><td>Object | null</td><td>เก็บ <code>startDate</code>, <code>endDate</code> จาก <code>GET /api/v1/semester</code></td><td>ไม่ล้างตลอดอายุหน้า</td></tr>
+          <tr><td><code>sessionsCache</code></td><td><code>Map&lt;weekStart, data&gt;</code></td><td>cache ตารางรายสัปดาห์ แยกตามวันจันทร์ของสัปดาห์นั้น</td><td><b>ล้างทันที (<code>.clear()</code>)</b> เมื่อ Select / Remove / Change สำเร็จ</td></tr>
+          <tr><td><code>coursesLoaded</code></td><td>Boolean</td><td>กันไม่ให้โหลด <code>profile + schedules + selections</code> ซ้ำเวลาสลับแท็บกลับไปมา</td><td>ไม่ล้าง</td></tr>
+          <tr><td><code>schedules</code> &amp; <code>selections</code></td><td>Array</td><td>Single Source of Truth สำหรับวาดตาราง My Schedule + Courses to Choose</td><td>แก้ในหน่วยความจำทันทีหลัง 201/200/204; โหลดใหม่เฉพาะตอนเจอ 404/409</td></tr>
+          <tr><td><code>isBusy</code></td><td>Boolean</td><td>Lock ป้องกันผู้ใช้กดปุ่มเปลี่ยนสัปดาห์/เปลี่ยนแท็บรัว ๆ ระหว่างกำลังรอ fetch</td><td>ปลดใน <code>finally</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 id="routing">เทคนิค History API (ไม่ Reload หน้า)</h3>
+    <ul>
+      <li><b><code>history.replaceState()</code>:</b> ใช้เวลา “ทำความสะอาด URL” เช่น ลบ <code>?yearLevel=99</code> หรือ <code>?view=grid</code> ทิ้ง โดย <b>ไม่สร้างประวัติใหม่</b> (กด Back ไม่ย้อนกลับไป URL ผิด ๆ)</li>
+      <li><b><code>history.pushState()</code>:</b> ใช้เวลาผู้ใช้กดเปลี่ยนชั้นปี, สลับแท็บ, หรือกด Previous/Next Week — <b>ทำหลังจาก fetch สำเร็จแล้วเท่านั้น</b> เพื่อไม่ให้ URL เปลี่ยนไปก่อนถ้า API พัง</li>
+      <li><b><code>window.addEventListener('popstate', ...)</code>:</b> ใช้ใน <code>my-schedule-main.js</code> เพื่อรองรับปุ่ม Back/Forward ของเบราว์เซอร์</li>
+    </ul>
+
+    <h2 id="css">CSS &amp; UI Contract: Apple Liquid Glass Theme</h2>
+    <p><span class="file fe">frontend/css/style.css</span> (~1,250 บรรทัด) ออกแบบธีม <b>Liquid Glass</b> รองรับทั้ง Dark และ Light mode อัตโนมัติด้วย <code>color-scheme: light dark</code> และ CSS Custom Properties (<code>--glass-window-bg</code>, <code>--glass-surface-bg</code>)</p>
+    <div class="callout tip"><span class="t">⚡ เกร็ด Performance จาก Git History (commit 588379a)</span>
+      เอฟเฟกต์ <code>backdrop-filter: blur()</code> เยอะ ๆ บนทุกแถวตารางทำให้ scroll กระตุก ทีมจึงปรับให้ใช้ translucent surface แทนการ blur ซ้อนหลายชั้น ทำให้เลื่อนตารางได้ลื่นระดับ 120fps ขณะที่ยังผ่าน UI Contract ครบทุกข้อเพราะแยก styling ออกจาก <code>data-testid</code> และ semantic HTML</div>
+
+    <h2 id="alternatives">ทางเลือกอื่นในการออกแบบ Frontend</h2>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: Vanilla JS + createElement">
+        <p>ตรงตามกฎ TR-05 100%, เบา, ไม่ต้อง build, ปลอดภัยจาก XSS เพราะใช้ <code>textContent</code></p>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: Event Delegation">
+        <p>ตอนนี้ใน <code>my-schedule-renderer.js</code> ผูก <code>addEventListener('click')</code> บนปุ่ม Select/Remove/Change ทีละแถว สามารถลดจำนวน listener ให้เหลืออันเดียวที่ <code>&lt;tbody&gt;</code> ได้:</p>
+        <script type="text/x-code">
+          // แปะ data-course-id และ data-section ไว้บน <button> แล้วฟังที่ tbody จุดเดียว
+          tbody.addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-action]');
+            if (!btn) return;
+            const courseId = Number(btn.dataset.courseId);
+            if (btn.dataset.action === 'select') handleSelect(courseId, Number(btn.dataset.section));
+            if (btn.dataset.action === 'remove') handleRemove(courseId);
+          });
+        </script>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก B: React / Vue (นอกวิชา)">
+        <p>ในงานจริงนอกวิชานี้ state อย่าง <code>schedules</code>, <code>selections</code>, <code>currentView</code> จะถูกจัดการด้วย React (<code>useState</code> / TanStack Query) หรือ Vue — ข้อดีคือไม่ต้องเขียน <code>tbody.innerHTML = ''</code> และ <code>el.style.display = 'none'</code> เองทีละ 10 ตัวแปรแบบใน <code>showNotStudentMessage()</code></p>
+      </div>
+    </div>
+
+  </main>
+</div>
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>

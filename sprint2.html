@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprint 2 — Sign-in และจัดตารางเรียนของตัวเอง | ITB-CSV Explained</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+</head>
+<body data-page="sprint2">
+<div class="layout">
+  <aside class="toc"></aside>
+  <main>
+
+    <section class="hero">
+      <div class="kicker">SPRINT 2 · 10–16 NOVEMBER 2026</div>
+      <h1>Sprint 2 — Sign-in และจัดตารางเรียนของตัวเอง</h1>
+      <p class="lead"><b>Sprint Goal:</b> “A student signs in, sees their own schedule with rooms, and chooses their sections.”<br>
+        Sprint นี้ยกระดับจากเว็บอ่านอย่างเดียวเป็น <b>Full CRUD + Authentication</b> พร้อมแยกวิชาบังคับ (Fixed) กับวิชาเลือก (Option)</p>
+      <p>
+        <span class="badge auth">PBI3 SIGN-IN</span>
+        <span class="badge fe">PBI4 VIEW-MY-SCHEDULE</span>
+        <span class="badge be">PBI5 SELECT</span>
+        <span class="badge be">PBI6 REMOVE</span>
+        <span class="badge be">PBI7 CHANGE</span>
+      </p>
+    </section>
+
+    <h2 id="req">5 PBI ที่ปล่อยใน Sprint 2</h2>
+    <div class="grid c2">
+      <div class="pbi">
+        <div><span class="id">PBI3</span> · <span class="name">SIGN-IN</span></div>
+        <ul class="small">
+          <li>หน้าแรกมีลิงก์ <b>“My Schedule”</b> เปิด <code>my-schedule.html</code> (หน้าแรกห้ามต่อ Keycloak!)</li>
+          <li>เข้า <code>my-schedule.html</code> แล้วเด้งไป Keycloak sign-in → กลับมาพร้อมชื่อเต็มและปุ่ม <b>Sign Out</b></li>
+          <li><b>TR-04:</b> ห้ามเก็บข้อมูลนักศึกษาใน DB ของเรา — อ่านจาก token เท่านั้น</li>
+        </ul>
+      </div>
+      <div class="pbi">
+        <div><span class="id">PBI4</span> · <span class="name">VIEW-MY-SCHEDULE</span></div>
+        <ul class="small">
+          <li>แสดงโปรไฟล์ <code>Year 2 · Group A</code> (ใช้ middle dot <code>\u00B7</code>) จาก Backend — หน้าเว็บไม่คำนวณเอง</li>
+          <li>2 ตาราง: <b>My Schedule</b> (Fixed + ที่เลือก, มี Room) และ <b>Courses to Choose</b> (Option ที่ยังไม่เลือก)</li>
+          <li>ถ้าไม่ใช่เด็ก BSc.IT (404) แสดงข้อความแจ้งเตือน ไม่มีตาราง · ยิง 3 API แค่อย่างละ 1 ครั้งต่อ page load</li>
+        </ul>
+      </div>
+      <div class="pbi">
+        <div><span class="id">PBI5</span> · <span class="name">SELECT-SECTION</span></div>
+        <ul class="small">
+          <li>ปุ่ม <b>Select</b> ใน Courses to Choose → <code>POST .../selections</code> (ไม่ต้องถามยืนยัน)</li>
+          <li><code>201</code> → ย้ายแถวเข้า My Schedule <b>ทันทีโดยไม่ reload / ไม่ refetch</b></li>
+          <li><code>409</code> / <code>404</code> → เปิด <code>&lt;dialog&gt;</code> (ห้ามใช้ <code>alert()</code>) กด OK แล้วค่อยโหลด selections ใหม่</li>
+          <li><code>DELETE .../selections</code> → <code>204</code> ล้างทั้งหมด (ใช้ reset ก่อนรัน test)</li>
+        </ul>
+      </div>
+      <div class="pbi">
+        <div><span class="id">PBI6 & PBI7</span> · <span class="name">REMOVE & CHANGE</span></div>
+        <ul class="small">
+          <li><b>PBI6:</b> ปุ่ม <b>Remove</b> เฉพาะแถวที่เลือกเอง → <code>&lt;dialog&gt;</code> ยืนยัน “Remove INT221 ... section 1?” → <code>DELETE .../selections/{courseId}</code> (204)</li>
+          <li><b>PBI7:</b> ปุ่ม <b>Change</b> เฉพาะวิชาเลือกที่มี &gt; 1 section → <code>&lt;dialog&gt;</code> แสดง radio ของ section อื่น → <code>PUT .../selections/{courseId}</code> (200)</li>
+          <li><code>created_at</code> คงเดิม, <code>updated_at</code> อัปเดตจาก <b>เวลาของ MySQL</b> (ถ้าส่ง section เดิม → 200 ไม่เปลี่ยนอะไร)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout warn"><span class="t">🔒 การเปลี่ยนแปลงด้าน Infra ตั้งแต่ Sprint 2 (TR-01)</span>
+      ระบบย้ายไปใช้ path ลับ <code>/intproj26/&lt;TEAM-PATH&gt;/</code> (ชื่อทีม + ขีด + สุ่ม 24 ตัว) เพื่อกันการลอกงาน
+      แต่ <code>GET /api/v1/health</code> ยังคงตอบ <code>"team": "ip26-zap"</code> เหมือนเดิม</div>
+
+    <h2 id="file-flow">แผนผังไฟล์ที่เชื่อมโยงกันใน Sprint 2</h2>
+    <pre class="mermaid">
+flowchart LR
+  subgraph AUTH["🔐 Auth"]
+    KC["Keycloak Server<br/>realm: itb-csv"]
+    CFG["js/config.js"] --> AJS["js/auth.js"]
+    VK["vendor/keycloak.js"] --> AJS
+    AJS <-.->|OIDC + PKCE| KC
+  end
+  subgraph FE["🎨 Frontend"]
+    MH["my-schedule.html"] --> MM["js/my-schedule-main.js"]
+    MM --> AJS
+    MM --> MAPI["js/my-schedule-api.js"]
+    MM --> MREN["components/my-schedule-renderer.js"]
+    MM --> MOD["components/modal.js"]
+    MREN --> FMT["utils/formatters.js"]
+  end
+  subgraph BE["⚙️ Backend"]
+    APP["app.js"] --> SR["routes/student.routes.js"]
+    APP --> YR["routes/year-level.routes.js"]
+    SR --> SC["student.controller.js"] --> SS["student.service.js"] --> SREPO["student.repository.js"]
+    SR --> SELC["selection.controller.js"] --> SELS["selection.service.js"] --> SELREPO["selection.repository.js"]
+    YR --> YLC["year-level.controller.js"] --> YLS["year-level.service.js"] --> SCHR["schedule.repository.js"]
+    SELS --> SS
+    SELS --> YLS
+  end
+  subgraph DB["🗄️ Database"]
+    AS[("academic_settings")]
+    SGR[("student_group_ranges")]
+    SEL[("selections")]
+    CS[("courses_schedule")]
+  end
+  MAPI -- "GET/POST/PUT/DELETE" --> SR
+  MAPI -- "GET year-levels" --> YR
+  SREPO --> AS
+  SREPO --> SGR
+  SELREPO --> SEL
+  SCHR --> CS
+    </pre>
+
+    <!-- ================= AUTH ================= -->
+    <h2 id="auth">🔐 Authentication: Keycloak Sign-in (PBI3)</h2>
+    <p>หัวใจสำคัญคือ <b>“Browser เป็นคน login กับ Keycloak เอง — Backend ไม่เคยเห็นรหัสผ่าน”</b> โดยใช้โปรโตคอล OpenID Connect (Authorization Code Flow + PKCE S256)</p>
+
+    <div class="stepper" data-title="ขั้นตอน Sign-in เมื่อผู้ใช้คลิก My Schedule">
+      <div class="step">
+        <div class="where"><span class="badge fe">FRONTEND</span><span class="file fe">index.html</span></div>
+        <p>ผู้ใช้คลิกลิงก์ <code>&lt;a href="./my-schedule.html"&gt;My Schedule&lt;/a&gt;</code> — หน้า <code>index.html</code> ไม่เคยโหลด <code>keycloak.js</code> เลย เพื่อไม่ให้กระทบ PBI1–2</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge auth">AUTH</span><span class="file auth">js/my-schedule-main.js</span> → <span class="file auth">js/auth.js</span></div>
+        <p>เรียก <code>await requireSignIn()</code> ซึ่งรัน <code>keycloak.init({ onLoad: 'login-required', pkceMethod: 'S256', checkLoginIframe: false })</code></p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge auth">KEYCLOAK</span></div>
+        <p>ถ้ายังไม่ login → <code>keycloak-js</code> สร้าง code challenge (PKCE) แล้ว redirect เบราว์เซอร์ไปหน้า login ของ Keycloak ที่ <code>bscit.sit.kmutt.ac.th/intproj26/keycloak/</code></p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge auth">AUTH</span><span class="file auth">js/auth.js</span></div>
+        <p>กรอกรหัสนักศึกษา/อาจารย์สำเร็จ → Keycloak redirect กลับมา <code>my-schedule.html?code=...</code> → <code>keycloak-js</code> เอา code ไปแลกเป็น <b>Access Token (JWT)</b> อัตโนมัติ แล้วแกะ <code>tokenParsed</code> ส่งคืน <code>{ username, name, roles }</code></p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge fe">FRONTEND</span><span class="file fe">my-schedule-main.js</span></div>
+        <p>โชว์ชื่อเต็มบน header, เปิดใช้งานปุ่ม <b>Sign Out</b> (ซึ่งเรียก <code>keycloak.logout({ redirectUri: './' })</code> เพื่อเคลียร์ session บน Keycloak แล้วกลับหน้าแรก) จากนั้นยิง API ด้วย <code>user.username</code></p>
+      </div>
+    </div>
+
+    <script type="text/x-code" data-path="frontend/js/config.js + frontend/js/auth.js">
+      // config.js — เปลี่ยนแค่ clientId ตามชื่อทีม
+      export const keycloakConfig = {
+        url: 'https://bscit.sit.kmutt.ac.th/intproj26/keycloak/',
+        realm: 'itb-csv',
+        clientId: 'ip26-zap',
+      };
+
+      // auth.js — ใช้ keycloak-js 26.2.5 แบบ ES Module ล้วน (ไม่ต้องมี bundler/Vite)
+      import Keycloak from './vendor/keycloak.js';
+      import { keycloakConfig } from './config.js';
+
+      const keycloak = new Keycloak(keycloakConfig);
+
+      export async function requireSignIn() {
+        await keycloak.init({
+          onLoad: 'login-required',
+          pkceMethod: 'S256',        // บังคับ PKCE ป้องกันการขโมย authorization code
+          checkLoginIframe: false,   // ปิด iframe check เพราะเบราว์เซอร์ยุคใหม่บล็อก 3rd-party cookie
+        });
+        const t = keycloak.tokenParsed;
+        return {
+          username: t.preferred_username,      // รหัสนักศึกษา 11 หลัก หรือ username อาจารย์
+          name: t.name,                        // ชื่อ-นามสกุลเต็ม
+          roles: t.realm_access?.roles ?? [],  // ['student'] หรือ ['lecturer']
+        };
+      }
+
+      export function signOut() {
+        return keycloak.logout({ redirectUri: new URL('./', location.href).href });
+      }
+    </script>
+
+    <p class="alt-title">ทางเลือกอื่น: จัดการ OIDC / Login แบบอื่น</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: keycloak-js (vendor)">
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>ตรงกับ Keycloak ของวิชา มี sample ให้เลย</li><li>ไม่ต้องมี build step (copy 2 ไฟล์ลง <code>vendor/</code>)</li><li>จัดการ PKCE + token refresh ให้ครบ</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ผูกกับ Keycloak โดยเฉพาะ (เปลี่ยน Identity Provider ต้องแก้)</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: oidc-client-ts">
+        <script type="text/x-code">
+          // ไลบรารีมาตรฐาน OIDC ใช้ได้กับ Keycloak, Auth0, Google, Azure AD
+          import { UserManager } from 'oidc-client-ts';
+          const mgr = new UserManager({
+            authority: 'https://bscit.sit.kmutt.ac.th/intproj26/keycloak/realms/itb-csv',
+            client_id: 'ip26-zap',
+            redirect_uri: location.origin + location.pathname,
+          });
+        </script>
+        <p class="small">เหมาะกับโปรเจกต์ที่อยากไม่ผูกติดกับ Keycloak (vendor-neutral)</p>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก B: Backend-for-Frontend (BFF) + Cookie">
+        <p class="small">ให้ Backend เป็นคนแลก code กับ Keycloak แล้วออก <code>HttpOnly; Secure</code> Session Cookie ให้ Browser — ปลอดภัยกว่าเพราะ JavaScript อ่าน token ไม่ได้ (กัน XSS ขโมย token) แต่ซับซ้อนกว่าและไม่ตรงกับสเปกวิชาที่ให้ Frontend ส่ง <code>Bearer</code> token</p>
+      </div>
+    </div>
+
+    <!-- ================= DB ================= -->
+    <h2 id="db">🗄️ Database: 3 ตารางใหม่ของ Sprint 2</h2>
+    <p>ไฟล์: <span class="file db">db_design/sprint2_migration.sql</span> (อัปเกรดจาก Sprint 1 โดยไม่ลบข้อมูลเก่า) และรวมอยู่ใน <span class="file db">database/init.sql</span></p>
+    <script type="text/x-code" data-lang="sql" data-path="db_design/sprint2_migration.sql" data-note="ย่อ">
+      -- 1) ตั้งค่าเทอมปัจจุบันและรหัสหลักสูตร (มีได้แค่ 1 แถว: CHECK id = 1)
+      CREATE TABLE IF NOT EXISTS academic_settings (
+          id INT PRIMARY KEY,
+          current_academic_year INT NOT NULL,     -- 2569
+          current_semester INT NOT NULL,          -- 1
+          program_code VARCHAR(6) NOT NULL,       -- '504504'
+          program_name VARCHAR(100) NOT NULL,     -- 'BSc.IT'
+          CONSTRAINT check_academic_settings_id CHECK (id = 1)
+      );
+
+      -- 2) ตารางช่วงเลขท้ายรหัสนักศึกษา → แบ่งกลุ่ม A / B
+      CREATE TABLE IF NOT EXISTS student_group_ranges (
+          id INT PRIMARY KEY,
+          entry_year INT NOT NULL,                -- 69, 68, 67, 66
+          student_group ENUM('A', 'B') NOT NULL,
+          from_no INT NOT NULL,                   -- เช่น 1
+          to_no INT NOT NULL,                     -- เช่น 67
+          CONSTRAINT unique_entry_group UNIQUE (entry_year, student_group),
+          CONSTRAINT check_no_range CHECK (from_no <= to_no)
+      );
+
+      -- 3) วิชาที่นักศึกษาเลือก (Composite Primary Key = 1 คนเลือก 1 วิชาได้แค่ 1 section)
+      CREATE TABLE IF NOT EXISTS selections (
+          student_id VARCHAR(11) NOT NULL,
+          course_id INT NOT NULL,
+          section INT NOT NULL,
+          created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+          updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+          PRIMARY KEY (student_id, course_id),
+          CONSTRAINT fk_selection_course FOREIGN KEY (course_id) REFERENCES courses(id)
+      );
+    </script>
+
+    <!-- ================= STUDENT ID DECODER ================= -->
+    <h2 id="student-profile">⚙️ Backend (PBI4): ถอดรหัสนักศึกษา 11 หลัก</h2>
+    <p>เพราะ <b>TR-04 ห้ามเก็บตาราง students</b> ระบบจึงคำนวณชั้นปีและกลุ่มจากรหัสนักศึกษา 11 หลัก ร่วมกับตาราง <code>academic_settings</code> และ <code>student_group_ranges</code> ในไฟล์ <span class="file be">services/student.service.js</span></p>
+
+    <div class="widget" id="sid-widget">
+      <div class="w-title">ลองเล่น: ตัวถอดรหัสนักศึกษา (จำลอง <code>GET /api/v1/students/{id}</code>)</div>
+      <div class="row">
+        <div>
+          <label for="sid-in">รหัสนักศึกษา 11 หลัก</label>
+          <input id="sid-in" value="68504504010" maxlength="15" style="width:190px;font-family:var(--mono)">
+        </div>
+        <button type="button" class="btn" data-sid="68504504010">68504504010 (ปี 2 A)</button>
+        <button type="button" class="btn" data-sid="67504504066">67504504066 (ปี 3 B)</button>
+        <button type="button" class="btn" data-sid="69130500010">69130500010 (คนละหลักสูตร)</button>
+        <button type="button" class="btn" data-sid="68504504136">68504504136 (เกินช่วง B)</button>
+      </div>
+      <div class="digits" id="sid-digits"></div>
+      <div class="out" id="sid-out"></div>
+    </div>
+
+    <script type="text/x-code" data-path="backend/src/services/student.service.js">
+      export async function getStudentProfile(studentId) {
+        if (typeof studentId !== 'string' || !/^\d{11}$/.test(studentId)) {
+          throw AppError.problem(PROBLEM_TYPES.STUDENT_NOT_FOUND, `${studentId} is not a student of BSc.IT.`);
+        }
+        const entryYear   = Number(studentId.slice(0, 2));  // 2 หลักแรก: ปีที่เข้า (68)
+        const programCode = studentId.slice(2, 8);          // 6 หลักกลาง: รหัสหลักสูตร (504504)
+        const studentNo   = Number(studentId.slice(8, 11)); // 3 หลักท้าย: เลขประจำตัว (010 → 10)
+
+        const settings = await studentRepo.findAcademicSettings();
+        if (!settings || programCode !== settings.programCode) {
+          throw AppError.problem(PROBLEM_TYPES.STUDENT_NOT_FOUND, `${studentId} is not a student of BSc.IT.`);
+        }
+        const yearLevel = (settings.currentAcademicYear % 100) - entryYear + 1; // 69 - 68 + 1 = 2
+        if (yearLevel < 1 || yearLevel > 4) {
+          throw AppError.problem(PROBLEM_TYPES.STUDENT_NOT_FOUND, `${studentId} is not a student of BSc.IT.`);
+        }
+        const range = await studentRepo.findGroupRange(entryYear, studentNo);
+        if (!range) {
+          throw AppError.problem(PROBLEM_TYPES.STUDENT_NOT_FOUND, `${studentId} is not a student of BSc.IT.`);
+        }
+        return { studentId, yearLevel, studentGroup: range.studentGroup };
+      }
+    </script>
+
+    <!-- ================= FIXED VS OPTION ================= -->
+    <h2 id="fixed-rule">⚙️ Backend (PBI4): กฎ Fixed vs Option และกับดัก <code>NULL</code></h2>
+    <p>กฎการแยกวิชาบังคับกับวิชาเลือกอยู่ใน <span class="file be">services/year-level.service.js</span> — Backend เป็นคนตัดสินใจแล้วแนบฟิลด์ <code>fixed: true/false</code> ส่งไปให้หน้าเว็บ (หน้าเว็บไม่คำนวณเอง)</p>
+
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>Type</th><th>studentGroup</th><th>จำนวน Section ในวิชานั้น</th><th>fixed</th><th>ตัวอย่าง</th></tr></thead>
+        <tbody>
+          <tr><td><code>CORE</code></td><td><code>A</code> หรือ <code>B</code></td><td>เท่าไหร่ก็ได้</td><td><span class="ok">true</span> (บังคับ)</td><td>INT144 Agile Software Development I</td></tr>
+          <tr><td><code>CORE</code></td><td><code>null</code></td><td>มีแค่ <b>1</b> section</td><td><span class="ok">true</span> (บังคับ)</td><td>INT504 Integrated Project</td></tr>
+          <tr><td><code>CORE</code></td><td><code>null</code></td><td>มี <b>&gt; 1</b> section</td><td><span class="bad">false</span> (เลือกได้)</td><td>LNG202 (sec 7–10), INT105</td></tr>
+          <tr><td><code>ELECTIVE</code></td><td><code>null</code></td><td>เท่าไหร่ก็ได้</td><td><span class="bad">false</span> (เลือกได้)</td><td>INT221 UI Design</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script type="text/x-code" data-path="backend/src/services/year-level.service.js">
+      export function isFixedSchedule(row, sectionCount) {
+        if (row.course.type !== 'CORE') return false;   // ELECTIVE → เลือกได้เสมอ
+        if (row.studentGroup !== null)  return true;    // CORE ที่มีกลุ่ม A/B → บังคับ
+        return sectionCount === 1;                      // CORE ไม่มีกลุ่ม: 1 sec = บังคับ, >1 sec = เลือกได้
+      }
+
+      export async function getSchedulesByYearLevel(yearLevel, studentGroup = null) {
+        const rawRows = await scheduleRepo.findByYearLevelWithLecturers(yearLevel);
+
+        // นับจำนวน section ที่ไม่ซ้ำของแต่ละ course ด้วย Map<courseId, Set<section>>
+        const sectionsByCourse = new Map();
+        for (const row of rawRows) {
+          if (!sectionsByCourse.has(row.courseId)) sectionsByCourse.set(row.courseId, new Set());
+          sectionsByCourse.get(row.courseId).add(row.section);
+        }
+
+        let formattedRows = rawRows.map((row) => {
+          const sectionCount = sectionsByCourse.get(row.courseId).size;
+          return formatYearLevelSchedule(row, isFixedSchedule(row, sectionCount));
+        });
+
+        // ⭐ เก็บทุก option (!fixed) + เก็บ fixed ที่ตรงกลุ่ม หรือ studentGroup เป็น null (เช่น INT504)
+        if (studentGroup) {
+          formattedRows = formattedRows.filter(
+            (item) => !item.fixed || item.studentGroup === studentGroup || item.studentGroup === null
+          );
+        }
+        return sortSchedules(formattedRows);
+      }
+    </script>
+
+    <div class="callout danger"><span class="t">💣 กับดัก SQL ที่พลาดบ่อย: ลืม <code>studentGroup === null</code></span>
+      ถ้าเขียน SQL แค่ <code>WHERE student_group = 'A'</code> วิชา <b>INT504</b> (ซึ่ง <code>student_group IS NULL</code>) จะหายไปจากตารางเรียนของปี 2 ทุกคน! เพราะใน SQL ค่า <code>NULL = 'A'</code> ไม่เป็นจริง</div>
+
+    <!-- ================= SELECTION CRUD ================= -->
+    <h2 id="crud">⚙️ Backend (PBI5–7): Selection CRUD &amp; เวลาของฐานข้อมูล</h2>
+    <p>เส้น API ทั้งหมดใน <span class="file be">routes/student.routes.js</span> ชี้ไปที่ <span class="file be">selection.controller.js</span> → <span class="file be">selection.service.js</span> → <span class="file be">selection.repository.js</span></p>
+
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>Method + Path</th><th>PBI</th><th>Success</th><th>Error หลัก</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/students/:id/selections</code></td><td>4</td><td><code>200</code> array เรียงตาม courseId</td><td>404 student-not-found</td></tr>
+          <tr><td><code>POST /api/v1/students/:id/selections</code></td><td>5</td><td><code>201</code> selection ใหม่</td><td>404 section-not-found, 409 already-selected</td></tr>
+          <tr><td><code>PUT /api/v1/students/:id/selections/:courseId</code></td><td>7</td><td><code>200</code> (section เดิม → ไม่แก้ updatedAt)</td><td>404 selection-not-found / section-not-found</td></tr>
+          <tr><td><code>DELETE /api/v1/students/:id/selections/:courseId</code></td><td>6</td><td><code>204</code> (no body)</td><td>404 selection-not-found</td></tr>
+          <tr><td><code>DELETE /api/v1/students/:id/selections</code></td><td>5</td><td><code>204</code> ลบทุกวิชาของคนนี้ (reset)</td><td>404 student-not-found</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <script type="text/x-code" data-path="backend/src/repositories/selection.repository.js" data-note="จุดน่าสนใจเรื่องเวลาของ DB">
+      // ใช้ $executeRaw พร้อม UTC_TIMESTAMP(3) เพื่อให้เวลาเกิดจาก "นาฬิกาของ MySQL" ไม่ใช่เวลาเครื่อง Node
+      export async function createSelection(studentId, courseId, section) {
+        await prisma.$executeRaw`
+          INSERT INTO selections (student_id, course_id, section, created_at, updated_at)
+          VALUES (${studentId}, ${courseId}, ${section}, UTC_TIMESTAMP(3), UTC_TIMESTAMP(3))`;
+        return await findByStudentAndCourse(studentId, courseId);
+      }
+
+      export async function updateSelection(studentId, courseId, section) {
+        // คง created_at ไว้ เปลี่ยนเฉพาะ updated_at
+        await prisma.$executeRaw`
+          UPDATE selections SET section = ${section}, updated_at = UTC_TIMESTAMP(3)
+          WHERE student_id = ${studentId} AND course_id = ${courseId}`;
+        return await findByStudentAndCourse(studentId, courseId);
+      }
+    </script>
+
+    <p class="alt-title">ทางเลือกอื่น: จัดการ <code>created_at</code> / <code>updated_at</code> ด้วย DB clock</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: $executeRaw + UTC_TIMESTAMP(3)">
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>มั่นใจ 100% ว่าใช้เวลาของ MySQL (ไม่เพี้ยนถ้า clock ของ container Node กับ MySQL ต่างกัน)</li><li>Parameterized template literal ของ Prisma กัน SQL Injection ให้แล้ว</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ต้อง query <code>findByStudentAndCourse</code> อีกรอบหลัง insert/update</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: Prisma create / update + DB DEFAULT">
+        <script type="text/x-code">
+          // ใน schema.prisma ไม่ใส่ @updatedAt แต่ปล่อยให้ MySQL ทำ DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3)
+          const created = await prisma.selection.create({
+            data: { studentId, courseId, section } // ไม่ส่ง createdAt/updatedAt → MySQL เติมให้เอง
+          });
+        </script>
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>ไม่ต้องเขียน SQL ดิบ และได้แถวกลับมาเลย</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>⚠️ ถ้าใส่ <code>@default(now())</code> หรือ <code>@updatedAt</code> ใน Prisma ระวัง Prisma ส่งเวลาจาก JS ไปแทน (ต้องเช็ค generated SQL)</li></ul></div></div>
+      </div>
+    </div>
+
+    <!-- ================= FRONTEND ================= -->
+    <h2 id="fe">🎨 Frontend: <code>my-schedule.html</code> และ State Management</h2>
+    <p>ต่างจากหน้าแรกที่มีแค่ตารางเดียว หน้า <code>my-schedule.html</code> ต้องจัดการ <b>2 ตารางที่สัมพันธ์กัน + 3 Dialog + State ในหน่วยความจำ</b> เพื่อไม่ให้ยิง API ซ้ำ (TR-06)</p>
+
+    <h3 id="fe-load">1) โหลดข้อมูลเริ่มต้น 3 เส้น (ทำครั้งเดียว)</h3>
+    <script type="text/x-code" data-path="frontend/js/my-schedule-main.js" data-note="ส่วนโหลดข้อมูลของนักศึกษา">
+      const profile = await fetchStudentProfile(studentId);    // เส้นที่ 1: ต้องรู้ yearLevel & studentGroup ก่อน
+      if (!profile) {
+        showNotStudentMessage();                               // 404 → หยุดเลย ไม่ยิงอีก 2 เส้น!
+        return false;
+      }
+      // เส้นที่ 2 และ 3 ไม่ต้องรอกัน → ยิงพร้อมกันด้วย Promise.all เร็วกว่า!
+      const [yearSchedules, studentSelections] = await Promise.all([
+        fetchYearSchedules(profile.yearLevel, profile.studentGroup),
+        fetchStudentSelections(studentId)
+      ]);
+      studentProfile = profile;
+      schedules = yearSchedules;
+      selections = studentSelections;
+      renderStudentTables(schedules, selections, handleSelect, handleRemove, handleChange);
+    </script>
+
+    <h3 id="fe-update">2) อัปเดตตารางหลัง Select / Remove / Change โดยไม่ Refetch</h3>
+    <p>แนวคิดแบบ <b>Single Source of Truth</b>: <code>schedules</code> (ข้อมูลทั้งชั้นปี) + <code>selections</code> (รายการที่เลือก) คือ state กลาง — พอ API ตอบสำเร็จ เราแก้แค่ array <code>selections</code> ใน JS แล้วเรียก <code>renderStudentTables()</code> วาด 2 ตารางใหม่ทันที!</p>
+
+    <script type="text/x-code" data-path="frontend/js/my-schedule-main.js" data-note="เปรียบเทียบ 3 action">
+      // PBI 5: Select (201) → เพิ่มเข้า selections แล้ววาดใหม่
+      if (result.status === 201) {
+        selections.push(result.data || { studentId, courseId, section });
+        renderStudentTables(schedules, selections, handleSelect, handleRemove, handleChange);
+      }
+
+      // PBI 6: Remove (204) → กรอง courseId นั้นออกแล้ววาดใหม่
+      if (result.status === 204) {
+        selections = selections.filter(sel => sel.courseId !== courseId);
+        renderStudentTables(schedules, selections, handleSelect, handleRemove, handleChange);
+      }
+
+      // PBI 7: Change (200) → อัปเดต section ใน selections แล้ววาดใหม่
+      if (result.status === 200) {
+        selections = selections.map(sel =>
+          sel.courseId === courseId ? { ...sel, section: newSection } : sel
+        );
+        renderStudentTables(schedules, selections, handleSelect, handleRemove, handleChange);
+      }
+    </script>
+
+    <div class="callout tip"><span class="t">💡 เมื่อไหร่ถึงจะยิง <code>fetchStudentSelections</code> ใหม่?</span>
+      เฉพาะตอนที่เกิด <b>409 (already-selected)</b> หรือ <b>404</b> — เพราะแปลว่าข้อมูลบนหน้าจอ “ล้าสมัย” (เช่น เปิด 2 แท็บแล้วลบไปอีกแท็บ) พอผู้ใช้กด OK/Esc ปิด dialog ค่อยยิงขอ <code>selections</code> มาซิงก์ใหม่ให้ตรงกับ DB</div>
+
+    <h3 id="fe-dialog">3) ทำไมต้องใช้ <code>&lt;dialog&gt;</code> แทน <code>alert()</code> / <code>confirm()</code>?</h3>
+    <p>ใน <span class="file fe">my-schedule-renderer.js</span> มีฟังก์ชัน <code>showMessageDialog()</code> และ <code>showChangeDialog()</code> ที่คุมแท็ก <code>&lt;dialog&gt;</code> จริงบน DOM:</p>
+    <ul>
+      <li>Playwright (และ automated tests) มองไม่เห็น <code>window.alert()</code>/<code>confirm()</code> เป็น DOM element แต่หา <code>role="dialog"</code> จาก <code>&lt;dialog&gt;.showModal()</code> ได้</li>
+      <li>แต่งหน้าตาให้เข้ากับธีมเว็บได้ (Liquid Glass) และใส่ radio buttons ใน Change dialog ได้</li>
+      <li><b>ข้อควรระวัง (TC-PBI7-7):</b> ตอนเปิด Change dialog ต้องสร้าง radio จาก section อื่นที่ <code>item.section !== currentSection</code> ทุกครั้ง และปุ่ม Change ต้อง <code>disabled = true</code> จนกว่าจะเลือก radio</li>
+    </ul>
+
+    <p class="alt-title">ทางเลือกอื่น: การเขียน Dialog แบบ Promise (async/await)</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: Callback style">
+        <script type="text/x-code">
+          showMessageDialog(message, async () => {
+            // โค้ดตอนกด Remove ซ้อนอยู่ใน callback
+            const result = await removeCourseSelection(studentId, courseId);
+            ...
+          }, true);
+        </script>
+        <p class="small">เข้าใจง่ายสำหรับคนคุ้นเคยกับ event handler แต่ถ้ามี dialog ซ้อนหลายชั้นโค้ดจะย่อหน้าลึกขึ้น</p>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก: Promise wrapper">
+        <script type="text/x-code">
+          function confirmDialog(message) {
+            return new Promise((resolve) => {
+              showMessageDialog(message, () => resolve(true), true, () => resolve(false));
+            });
+          }
+
+          // ตอนเรียกใช้งานอ่านเป็นเส้นตรงเหมือน confirm() แต่เป็น <dialog> จริง!
+          async function handleRemove(courseId, item) {
+            const ok = await confirmDialog(`Remove ${item.course.code} section ${item.section}?`);
+            if (!ok) return;
+            const result = await removeCourseSelection(studentId, courseId);
+            ...
+          }
+        </script>
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>อ่านจากบนลงล่าง ไม่ซ้อน callback</li><li>ลดความซ้ำซ้อนเวลาต้องเปิด clash dialog ต่อจาก change dialog</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ต้องระวังไม่ให้เปิดซ้อนกัน 2 อันพร้อมกัน</li></ul></div></div>
+      </div>
+    </div>
+
+    <h2 id="lessons">6 จุดพลาดบ่อยใน Sprint 2 (Checklist)</h2>
+    <div class="grid c3">
+      <div class="card"><h4>🧮 หน้าเว็บไม่คำนวณเอง</h4><p class="small"><code>yearLevel</code>, <code>studentGroup</code> และ <code>fixed</code> ต้องมาจาก Backend ทั้งหมด</p></div>
+      <div class="card"><h4>🕳️ กลุ่มที่เป็น null</h4><p class="small">INT504 ไม่มีกลุ่มแต่เป็นวิชาบังคับของทั้ง Group A และ B</p></div>
+      <div class="card"><h4>⚡ ไม่ refetch หลังคลิก</h4><p class="small">Select/Remove/Change สำเร็จให้แก้ state ในหน้าแล้ววาดใหม่เลย</p></div>
+      <div class="card"><h4>🔄 409 / 404 → อ่านใหม่</h4><p class="small">แจ้งใน <code>&lt;dialog&gt;</code> พอกด OK/Esc ค่อยยิง <code>GET selections</code> ซิงก์ใหม่</p></div>
+      <div class="card"><h4>⏱️ นาฬิกาของ MySQL</h4><p class="small"><code>created_at</code>/<code>updated_at</code> มาจาก DB และ PUT ต้องไม่เปลี่ยน <code>createdAt</code></p></div>
+      <div class="card"><h4>· Middle Dot (U+00B7)</h4><p class="small"><code>Year 2 · Group A</code> ใช้ <code>\u00B7</code> มีเว้นวรรคซ้าย-ขวา (ไม่ใช่จุดหรือขีด)</p></div>
+    </div>
+
+  </main>
+</div>
+<script type="module" src="assets/app.js"></script>
+<script>
+// Interactive Student ID Decoder Widget
+(() => {
+  const ranges = [
+    { entry: 69, group: 'A', from: 1, to: 70 }, { entry: 69, group: 'B', from: 71, to: 140 },
+    { entry: 68, group: 'A', from: 1, to: 67 }, { entry: 68, group: 'B', from: 68, to: 135 },
+    { entry: 67, group: 'A', from: 1, to: 65 }, { entry: 67, group: 'B', from: 66, to: 130 },
+    { entry: 66, group: 'A', from: 1, to: 60 }, { entry: 66, group: 'B', from: 61, to: 120 },
+  ];
+  const input = document.getElementById('sid-in');
+  const digits = document.getElementById('sid-digits');
+  const out = document.getElementById('sid-out');
+
+  function render() {
+    const val = input.value.trim();
+    digits.innerHTML = [...val].map((ch, i) => {
+      const cls = i < 2 ? 'y' : i < 8 ? 'p' : i < 11 ? 'n' : '';
+      return `<span class="${cls}">${ch}</span>`;
+    }).join('') || '<span class="muted">พิมพ์รหัส 11 หลัก</span>';
+
+    if (!/^\d{11}$/.test(val)) {
+      out.innerHTML = `<span class="bad">400 Validation Failed</span> — รหัสนักศึกษาต้องเป็นตัวเลข 11 หลักเป๊ะ (ตอนนี้ ${val.length} ตัว)`;
+      return;
+    }
+    const entry = Number(val.slice(0, 2));
+    const prog = val.slice(2, 8);
+    const no = Number(val.slice(8, 11));
+    const yearLevel = (2569 % 100) - entry + 1;
+
+    const lines = [
+      `<b>แกะรหัส:</b> ปีเข้า = <code style="color:var(--fe)">${val.slice(0,2)}</code> · รหัสหลักสูตร = <code style="color:var(--db)">${prog}</code> · ลำดับ = <code style="color:var(--be)">${val.slice(8,11)}</code> (${no})`
+    ];
+    if (prog !== '504504') {
+      lines.push(`<span class="bad">404 student-not-found</span> — programCode <code>${prog}</code> ≠ <code>504504</code> (ไม่ใช่ BSc.IT)`);
+    } else if (yearLevel < 1 || yearLevel > 4) {
+      lines.push(`<span class="bad">404 student-not-found</span> — คำนวณได้ Year ${yearLevel} (อยู่นอกช่วง 1–4)`);
+    } else {
+      const found = ranges.find(r => r.entry === entry && no >= r.from && no <= r.to);
+      if (!found) {
+        lines.push(`<span class="bad">404 student-not-found</span> — ลำดับ ${no} ไม่อยู่ในช่วง Group A/B ของรุ่น ${entry}`);
+      } else {
+        lines.push(`<span class="ok">200 OK</span> → <code>{ "studentId": "${val}", "yearLevel": ${yearLevel}, "studentGroup": "${found.group}" }</code>`);
+        lines.push(`<b>แสดงบนหน้าเว็บ:</b> <code>Year ${yearLevel} · Group ${found.group}</code>`);
+      }
+    }
+    out.innerHTML = lines.join('<br>');
+  }
+
+  input.addEventListener('input', render);
+  document.querySelectorAll('[data-sid]').forEach(b => b.addEventListener('click', () => {
+    input.value = b.dataset.sid;
+    render();
+  }));
+  render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Backend Architecture | ITB-CSV Explained</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+</head>
+<body data-page="backend">
+<div class="layout">
+  <aside class="toc"></aside>
+  <main>
+
+    <section class="hero">
+      <div class="kicker">LAYER DEEP DIVE · BACKEND</div>
+      <h1>⚙️ Backend Architecture — Express + Prisma (Layered)</h1>
+      <p class="lead">Backend เขียนด้วย <b>Node.js (ESM) + Express 4 + Prisma 6 + jose</b> แบ่งเป็น 5 ชั้นชัดเจน ทำให้เพิ่มฟีเจอร์จาก Sprint 1 → 2 → 3 ได้โดยไม่พันกัน</p>
+      <p><span class="badge be">11 REST Endpoints</span> <span class="badge auth">JWKS Auth</span> <span class="badge be">RFC 9457 Errors</span> <span class="badge db">Prisma ORM</span></p>
+    </section>
+
+    <h2 id="layers">โครงสร้าง 5 ชั้น (Layered Architecture)</h2>
+    <div class="flow">
+      <div class="node be"><b>1. Routes</b>จับคู่ HTTP Method + Path</div><span class="arrow">→</span>
+      <div class="node auth"><b>2. Middleware</b>Auth (401/403)<br>Validate (400)</div><span class="arrow">→</span>
+      <div class="node be"><b>3. Controller</b>แกะ req, ส่ง res<br>try/catch → next(err)</div><span class="arrow">→</span>
+      <div class="node be"><b>4. Service</b>Business Rules<br>(fixed, clash, profile)</div><span class="arrow">→</span>
+      <div class="node db"><b>5. Repository</b>Prisma query<br>อย่างเดียว</div>
+    </div>
+
+    <div class="callout tip"><span class="t">💡 ทำไมต้องแยก Controller กับ Service ออกจากกัน?</span>
+      <ul>
+        <li><b>Controller</b> รู้จักโลกของ HTTP (<code>req.params</code>, <code>req.body</code>, <code>res.status(201)</code>) แต่ไม่รู้กฎธุรกิจ</li>
+        <li><b>Service</b> รู้จักกฎธุรกิจ (เช่น <code>studentService.getStudentProfile()</code>) แต่ไม่รู้จัก <code>req/res</code> — จึงถูกเรียกใช้ซ้ำจากหลายที่ได้! เช่น <code>selection.service.js</code> เรียกใช้ทั้ง <code>student.service.js</code> และ <code>year-level.service.js</code> โดยตรง</li>
+      </ul>
+    </div>
+
+    <h2 id="endpoints">รวม API Endpoints ทั้งหมด (11 เส้น · Sprint 1–3)</h2>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>Method &amp; Endpoint</th><th>Sprint</th><th>Auth / Role</th><th>Middleware → Controller</th></tr></thead>
+        <tbody>
+          <tr><td><code>GET /api/v1/health</code></td><td>1</td><td><span class="badge gray">Open</span></td><td><code>health.controller.getHealthStatus</code></td></tr>
+          <tr><td><code>GET /api/v1/schedules[?yearLevel]</code></td><td>1</td><td><span class="badge gray">Open</span></td><td><code>validateSchedulesQuery</code> → <code>schedule-filter.controller</code></td></tr>
+          <tr><td><code>GET /api/v1/semester</code></td><td>3</td><td><span class="badge gray">Open</span></td><td><code>academic.controller.getSemester</code></td></tr>
+          <tr><td><code>GET /api/v1/year-levels/:yearLevel/schedules</code></td><td>2, 3</td><td><span class="badge auth">student | lecturer</span></td><td><code>validateYearLevelSchedules</code> → <code>year-level.controller</code></td></tr>
+          <tr><td><code>GET /api/v1/students/:studentId</code></td><td>2</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>student.controller.getStudentProfile</code></td></tr>
+          <tr><td><code>GET /api/v1/students/:studentId/selections</code></td><td>2</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>selection.controller.getStudentSelections</code></td></tr>
+          <tr><td><code>POST /api/v1/students/:studentId/selections</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>express.json()</code> → <code>validateCreateSelection</code> → <code>createSelection</code></td></tr>
+          <tr><td><code>PUT /api/v1/students/:studentId/selections/:courseId</code></td><td>2, 3</td><td><span class="badge auth">student + self</span></td><td><code>express.json()</code> → <code>validateUpdateSelection</code> → <code>updateSelection</code></td></tr>
+          <tr><td><code>DELETE /api/v1/students/:studentId/selections/:courseId</code></td><td>2</td><td><span class="badge auth">student + self</span></td><td><code>validateDeleteSelection</code> → <code>deleteSelection</code></td></tr>
+          <tr><td><code>DELETE /api/v1/students/:studentId/selections</code></td><td>2</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>resetSelections</code></td></tr>
+          <tr><td><code>GET /api/v1/students/:studentId/sessions?date=</code></td><td>3</td><td><span class="badge auth">student + self</span></td><td><code>validateStudentIdParam</code> → <code>validateSessionDate</code> → <code>getStudentSessions</code></td></tr>
+          <tr><td><code>GET /api/v1/lecturers/:username/schedules</code></td><td>3</td><td><span class="badge auth">lecturer + self</span></td><td><code>lecturer.controller.getLecturerSchedules</code></td></tr>
+          <tr><td><code>GET /api/v1/lecturers/:username/sessions?date=</code></td><td>3</td><td><span class="badge auth">lecturer + self</span></td><td><code>validateSessionDate</code> → <code>lecturer.controller.getLecturerSessions</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="pipeline">Middleware Pipeline ใน <code>student.routes.js</code></h2>
+    <p>ลำดับ middleware ใน Express คือตัวกำหนดลำดับ Error <code>401 → 403 → 400 → 404 → 409</code> อัตโนมัติ! ลองดูโค้ดจริง:</p>
+    <script type="text/x-code" data-path="backend/src/routes/student.routes.js">
+      const router = express.Router();
+
+      // ด่านที่ 1 & 2 (ทุกเส้นใต้ /api/v1/students): ตรวจ Token (401) → ตรวจ Role 'student' (403)
+      router.use(requireAccessToken, requireRole('student'));
+
+      // ด่านที่ 3: requireSelf('studentId') → ตรวจว่าเป็น ID ของตัวเอง (403)
+      // ด่านที่ 4: express.json() → parse JSON (ถ้า JSON พังจะข้ามไป errorHandler ตอบ 400!)
+      // ด่านที่ 5: validateCreateSelection → ตรวจค่าทุก field (400)
+      // ด่านที่ 6: controller → service (404 → 409)
+      router.post(
+        '/:studentId/selections',
+        requireSelf('studentId'),
+        express.json(),
+        validateCreateSelection,
+        selectionController.createSelection
+      );
+    </script>
+
+    <div class="callout note"><span class="t">🧠 ทำไมทีมใส่ <code>express.json()</code> แค่ใน POST/PUT หลัง <code>requireSelf</code> แทนที่จะใส่บนสุดใน <code>app.js</code>?</span>
+      ฉลาดมาก! เพราะถ้าใส่ <code>app.use(express.json())</code> บนสุดใน <code>app.js</code> เมื่อมีคนส่ง <b>JSON พัง + ไม่มี Token</b> ตัว <code>express.json()</code> จะพ่น 400 ออกมาก่อน <code>requireAccessToken</code> จะได้ตรวจ 401 — ซึ่งจะ <b>ผิดลำดับ 401 → 403 → 400 ของ PBI9!</b> การวาง <code>express.json()</code> ไว้หลัง <code>requireSelf</code> ทำให้ 401 และ 403 ชนะ 400 เสมอ</div>
+
+    <h2 id="service-graph">ความสัมพันธ์ระหว่าง Services และ Repositories</h2>
+    <pre class="mermaid">
+flowchart LR
+  subgraph SVC["Services (Business Logic)"]
+    SCHS["schedule.service"]
+    SCHFS["schedule-filter.service"]
+    YLS["year-level.service"]
+    STUS["student.service"]
+    SELS["selection.service"]
+    LECS["lecturer.service"]
+    ACAS["academic.service"]
+  end
+  subgraph REPO["Repositories (Prisma)"]
+    R_SCH["schedule.repository"]
+    R_STU["student.repository"]
+    R_SEL["selection.repository"]
+    R_LEC["lecturer.repository"]
+    R_ACA["academic.repository"]
+  end
+  SCHS --> R_SCH
+  SCHFS --> R_SCH
+  YLS --> R_SCH
+  STUS --> R_STU
+  STUS --> R_SEL
+  STUS --> YLS
+  STUS --> ACAS
+  SELS --> R_SEL
+  SELS --> STUS
+  SELS --> YLS
+  LECS --> R_LEC
+  LECS --> ACAS
+  ACAS --> R_ACA
+    </pre>
+
+    <h2 id="legacy">ไฟล์เก่าที่ยังค้างอยู่ใน Repo (ไม่ได้ใช้งานแล้ว)</h2>
+    <p>จากการไล่ import graph ทั้งโปรเจกต์ พบ 2 ไฟล์ที่เป็นร่องรอยจาก Sprint 1 ซึ่งปัจจุบัน <b>ไม่มีไฟล์ไหน import แล้ว</b>:</p>
+    <div class="grid c2">
+      <div class="card">
+        <h4><span class="file be">src/config/db.js</span></h4>
+        <p class="small">ไฟล์เชื่อมต่อ MySQL ด้วย <code>mysql2/promise</code> จากช่วงเริ่มต้น ก่อนที่ทีมจะเปลี่ยนมาใช้ Prisma ทั้งหมดใน <span class="file be">src/config/prisma.js</span> (รวมถึง dependency <code>mysql2</code> ใน <code>package.json</code> ก็ไม่ได้ถูกเรียกในโค้ด runtime แล้ว)</p>
+      </div>
+      <div class="card">
+        <h4><span class="file be">src/controllers/schedule.controller.js</span></h4>
+        <p class="small">Controller ตัวแรกของ PBI1 ก่อนถูกแทนที่ด้วย <span class="file be">schedule-filter.controller.js</span> ที่รองรับทั้ง PBI1 (All) และ PBI2 (<code>?yearLevel</code>) ในไฟล์เดียว</p>
+      </div>
+    </div>
+
+    <h2 id="alternatives">ทางเลือกอื่นในการออกแบบ Backend</h2>
+    <div class="tabs">
+      <div class="tab-panel" data-label="ORM: Prisma vs mysql2">
+        <p>เปรียบเทียบวิธี query ตาราง <code>courses_schedule</code> ด้วย Prisma (ที่ทีมใช้) กับ Raw SQL ผ่าน <code>db.js</code> (<code>mysql2</code>):</p>
+        <script type="text/x-code" data-lang="javascript">
+          // ✅ แบบ Prisma (ปัจจุบัน — schedule.repository.js)
+          await prisma.courseSchedule.findMany({
+            where: { course: { is: { yearLevel } } },
+            include: { course: true }
+          });
+
+          // 🔁 แบบ mysql2 raw SQL (ถ้าใช้ config/db.js)
+          const [rows] = await pool.execute(
+            `SELECT cs.*, c.code, c.title, c.type, c.year_level
+             FROM courses_schedule cs JOIN courses c ON c.id = cs.course_id
+             WHERE c.year_level = ?`, [yearLevel]
+          );
+        </script>
+        <p class="small"><b>สรุป:</b> Prisma ได้ object ซ้อน <code>item.course</code> อัตโนมัติและตรงตามกฎ TR-05 ส่วน <code>mysql2</code> เร็วกว่าเล็กน้อยและเขียน SQL ซับซ้อนตรง ๆ ได้ (ซึ่งทีมก็ใช้ <code>prisma.$executeRaw</code> ผสมเมื่อจำเป็น เช่น <code>UTC_TIMESTAMP(3)</code>)</p>
+      </div>
+      <div class="tab-panel" data-label="โครงสร้างโฟลเดอร์: Layer vs Feature">
+        <div class="pc">
+          <div class="pro"><b>แบบแบ่งตาม Layer (ที่ทีมใช้)</b><ul><li><code>routes/</code>, <code>controllers/</code>, <code>services/</code>, <code>repositories/</code></li><li>หาง่ายว่า middleware หรือ formatter อยู่ไหน</li><li>เหมาะกับขนาดเล็ก-กลาง (5–15 endpoints)</li></ul></div>
+          <div class="con"><b>แบบแบ่งตาม Feature (ทางเลือก)</b><ul><li><code>features/students/</code> (รวม route+ctrl+svc+repo), <code>features/lecturers/</code></li><li>แก้ 1 ฟีเจอร์ไม่ต้องสลับเปิด 4 โฟลเดอร์</li><li>เหมาะเมื่อโปรเจกต์โตเกิน 30–50 endpoints</li></ul></div>
+        </div>
+      </div>
+      <div class="tab-panel" data-label="Framework: Express 4 vs Express 5 / Fastify">
+        <p class="small"><b>Express 4 (ปัจจุบัน):</b> ต้องเขียน <code>try { ... } catch (err) { next(err); }</code> ในทุก async controller ไม่งั้น unhandled rejection จะค้าง request<br>
+        <b>Express 5 / Fastify / Hono:</b> จัดการ async error ให้อัตโนมัติโดยไม่ต้องเขียน try/catch ซ้ำทุกฟังก์ชัน และ Fastify/Hono มี schema validation ในตัว</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ITB-CSV Explained — ภาพรวมโปรเจกต์</title>
+  <meta name="description" content="เว็บอธิบายโค้ดโปรเจกต์ INT504 itb-csv แบบเห็นภาพ แบ่งตาม Sprint และ Frontend / Backend / Database">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+</head>
+<body data-page="home">
+<div class="layout">
+  <aside class="toc"></aside>
+  <main>
+
+    <section class="hero">
+      <div class="kicker">INT504 INTEGRATED PROJECT 2026 · TEAM ZAP (GROUP 43)</div>
+      <h1>เรียนรู้โค้ด <code>itb-csv</code> แบบเห็นภาพ ทีละ Sprint</h1>
+      <p class="lead">IT-Bangmod Class Schedule Viewing System — ระบบดูตารางเรียนของหลักสูตร BSc.IT
+        เว็บนี้จะพาไล่ดูว่า <b>ไฟล์ไหนทำอะไร</b>, <b>ไฟล์ไหนเรียกไฟล์ไหน</b>, <b>ข้อมูลไหลจากหน้าเว็บไปถึงฐานข้อมูลอย่างไร</b>
+        และ <b>มีวิธีเขียนแบบอื่นที่ใช้แทนได้ไหม</b></p>
+      <p>
+        <span class="badge fe">FRONTEND</span>
+        <span class="badge be">BACKEND</span>
+        <span class="badge db">DATABASE</span>
+        <span class="badge auth">AUTH / KEYCLOAK</span>
+        <span class="badge infra">INFRA / CI</span>
+      </p>
+    </section>
+
+    <h2 id="what">ระบบนี้คืออะไร?</h2>
+    <p>Business requirement มาจากผู้ใช้ 3 กลุ่ม — แต่ละ Sprint จะปล่อยฟีเจอร์ (PBI) ของแต่ละกลุ่มเพิ่มเข้ามาทีละชุด</p>
+    <div class="grid c3">
+      <div class="card fe">
+        <div class="icon">👀</div>
+        <h3>Guest (ผู้เยี่ยมชม)</h3>
+        <p>“อยากดูตารางเรียนของหลักสูตร”<br><span class="muted small">ไม่ต้อง login · หน้า <code>index.html</code> · Sprint 1</span></p>
+      </div>
+      <div class="card be">
+        <div class="icon">🎓</div>
+        <h3>Student (นักศึกษา)</h3>
+        <p>“อยากดูตารางเรียนของตัวเอง เลือก/ถอน/เปลี่ยน section”<br><span class="muted small">login ผ่าน Keycloak · <code>my-schedule.html</code> · Sprint 2–3</span></p>
+      </div>
+      <div class="card db">
+        <div class="icon">👩‍🏫</div>
+        <h3>Lecturer (อาจารย์)</h3>
+        <p>“อยากดูตารางสอนของตัวเอง”<br><span class="muted small">login ผ่าน Keycloak · <code>my-schedule.html</code> · Sprint 3</span></p>
+      </div>
+    </div>
+
+    <h2 id="architecture">สถาปัตยกรรมภาพใหญ่ (Big Picture)</h2>
+    <p>ตาม Technical Requirement <b>TR-02</b> ระบบต้องแยกเป็น 4 ส่วน แต่ละส่วนอยู่ใน container ของตัวเอง:
+      <b>proxy</b>, <b>frontend</b>, <b>backend</b>, <b>database</b> — และใช้ Keycloak ของวิชา (ภายนอก) สำหรับ login</p>
+
+    <pre class="mermaid">
+flowchart LR
+  U["🧑‍💻 Browser"] -->|HTTPS 443| UP["University proxy<br/>(TLS certificate)"]
+  UP --> CP["Course proxy<br/>(forward ตาม team path)"]
+  subgraph VM["🖥️ VM ของทีม (Docker)"]
+    PX["🌐 Proxy container<br/>nginx"]
+    FE["🎨 Frontend container<br/>HTML / CSS / JS"]
+    BE["⚙️ Backend container<br/>Express + Prisma"]
+    DB[("🗄️ Database container<br/>MySQL 8 · utf8mb4")]
+    PX -->|"/intproj26/TEAM-PATH/"| FE
+    PX -->|"/intproj26/TEAM-PATH/api/v1/*"| BE
+    BE -->|Prisma Client| DB
+  end
+  CP --> PX
+  U <-.->|"login (OIDC + PKCE)"| KC["🔐 Keycloak ของวิชา<br/>realm: itb-csv"]
+  BE -.->|"ดึง public key (JWKS)<br/>ตรวจ token"| KC
+    </pre>
+
+    <div class="callout note"><span class="t">💡 จำง่าย ๆ</span>
+      Browser โหลดไฟล์หน้าเว็บจาก <b>Frontend</b> → JavaScript ในหน้าเว็บยิง <code>fetch('./api/v1/...')</code> → proxy ส่งต่อให้ <b>Backend</b>
+      → Backend ใช้ <b>Prisma</b> คุยกับ <b>MySQL</b> → ได้ JSON กลับไปวาดตาราง</div>
+
+    <h2 id="stack">Tech Stack และของที่ใช้แทนได้</h2>
+    <p>TR-05 บังคับให้ใช้ <b>HTML, CSS, JavaScript · Express + Prisma · MySQL</b> (ห้ามใช้ JS framework อย่าง React/Vue — แต่ jQuery อนุญาต) ตารางด้านล่างบอกว่าแต่ละชั้นทีมเลือกอะไร และในโลกจริงมีอะไรใช้แทนได้บ้าง</p>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>ชั้น</th><th>ที่ทีมใช้</th><th>หน้าที่</th><th>ตัวเลือกอื่น (นอกข้อบังคับวิชา)</th></tr></thead>
+        <tbody>
+          <tr><td><span class="badge fe">FE</span></td><td>Vanilla JS (ES Modules), <code>&lt;dialog&gt;</code>, CSS ล้วน</td><td>วาดตาราง, ปุ่ม, dialog, จัดการ URL</td><td>React / Vue / Svelte, jQuery, Lit (Web Components)</td></tr>
+          <tr><td><span class="badge auth">AUTH</span></td><td><code>keycloak-js</code> 26.2.5 (vendor)</td><td>login / logout / ต่ออายุ token</td><td><code>oidc-client-ts</code>, Auth0 SPA SDK, เขียน PKCE เอง</td></tr>
+          <tr><td><span class="badge be">BE</span></td><td>Express 4 (ESM)</td><td>REST API <code>/api/v1/*</code></td><td>Fastify, Koa, NestJS, Hono</td></tr>
+          <tr><td><span class="badge be">BE</span></td><td><code>jose</code></td><td>ตรวจ JWT ด้วย JWKS</td><td><code>express-oauth2-jwt-bearer</code>, <code>jsonwebtoken</code> + <code>jwks-rsa</code>, <code>keycloak-connect</code></td></tr>
+          <tr><td><span class="badge db">ORM</span></td><td>Prisma 6</td><td>query DB แบบ type-safe</td><td><code>mysql2</code> (raw SQL), Knex, Sequelize, TypeORM, Drizzle</td></tr>
+          <tr><td><span class="badge db">DB</span></td><td>MySQL 8.4 (utf8mb4)</td><td>เก็บตาราง, seed ตาม Test Data</td><td>MariaDB, PostgreSQL</td></tr>
+          <tr><td><span class="badge infra">INFRA</span></td><td>Docker + Proxy + GitHub Actions</td><td>deploy / CI quality gate</td><td>Podman (ห้ามในวิชา), Caddy/Traefik แทน nginx, GitLab CI</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="one-request">ตามรอย 1 Request: กดปุ่ม “Year 2” แล้วเกิดอะไรขึ้น?</h2>
+    <p>กด <b>ถัดไป ▶</b> เพื่อดูทีละขั้นว่าโค้ดวิ่งผ่านไฟล์ไหนบ้าง (ตัวอย่างจาก PBI2)</p>
+    <div class="stepper" data-title="GET /api/v1/schedules?yearLevel=2">
+      <div class="step">
+        <div class="where"><span class="badge fe">FRONTEND</span><span class="file fe">frontend/index.html</span></div>
+        <p>ผู้ใช้กดปุ่ม <code>&lt;button data-year="2"&gt;Year 2&lt;/button&gt;</code> ในแถบ filter</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge fe">FRONTEND</span><span class="file fe">js/components/filter.js</span></div>
+        <p><code>initFilter()</code> ผูก event click ไว้ → อัปเดต <code>aria-pressed</code> ของปุ่ม → <code>history.pushState()</code> เปลี่ยน URL เป็น <code>?yearLevel=2</code> <b>โดยไม่ reload</b> → เรียก callback ที่ <code>main.js</code> ส่งมา</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge fe">FRONTEND</span><span class="file fe">js/main.js</span> → <span class="file fe">js/api.js</span></div>
+        <p><code>loadSchedules("2")</code> เรียก <code>fetchSchedules("2")</code> — ถ้าเคยโหลด “All” มาแล้วจะ <b>กรองจาก cache</b> ไม่ยิงซ้ำ (TR-06) ถ้ายังไม่เคยจะยิง <code>fetch('./api/v1/schedules?yearLevel=2')</code></p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge infra">PROXY</span></div>
+        <p>Request วิ่งผ่าน University proxy → Course proxy → nginx บน VM ซึ่งเห็น path <code>/api/v1/...</code> แล้วส่งต่อให้ container backend (port 3000)</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge be">BACKEND</span><span class="file be">src/app.js</span> → <span class="file be">routes/schedule.routes.js</span></div>
+        <p><code>app.use('/api/v1/schedules', scheduleRoutes)</code> → router วิ่งผ่าน middleware <code>validateSchedulesQuery</code> (ตรวจว่า yearLevel เป็น 1–4 ไม่งั้นตอบ 400) แล้วไป controller</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge be">BACKEND</span><span class="file be">controllers/schedule-filter.controller.js</span> → <span class="file be">services/schedule-filter.service.js</span></div>
+        <p>Controller ดูว่ามี <code>req.validatedYearLevel</code> ไหม → เรียก service <code>getSchedulesByYearLevel(2)</code></p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge db">DATABASE</span><span class="file be">repositories/schedule.repository.js</span> → <span class="file be">config/prisma.js</span></div>
+        <p><code>prisma.courseSchedule.findMany({ where: { course: { is: { yearLevel: 2 } } }, include: { course: true } })</code> — Prisma แปลงเป็น SQL JOIN ระหว่าง <code>courses_schedule</code> กับ <code>courses</code></p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge be">BACKEND</span><span class="file be">utils/schedule.formatter.js</span> + <span class="file be">utils/schedule.sorter.js</span></div>
+        <p>แปลงแต่ละแถวให้ตรง API contract (ตัด <code>room</code>, เวลาเป็น <code>"HH:MM"</code>, camelCase, null ถ้าว่าง) แล้วเรียงตามลำดับ PBI1 6 ขั้น → <code>res.status(200).json(...)</code></p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge fe">FRONTEND</span><span class="file fe">js/components/table-renderer.js</span></div>
+        <p><code>renderTable(schedules)</code> ล้าง <code>&lt;tbody&gt;</code> แล้วสร้าง <code>&lt;tr data-testid="schedule-row"&gt;</code> ทีละแถวด้วย <code>document.createElement</code> — ถ้า array ว่างแสดงข้อความ empty, ถ้า error เปิด <code>&lt;dialog&gt;</code></p>
+      </div>
+    </div>
+
+    <h2 id="roadmap">Roadmap ตาม Sprint</h2>
+    <p>Product Backlog มีทั้งหมด 15 PBI ปล่อยทีละ Sprint — เว็บนี้อธิบาย Sprint 1–3 (PBI 1–12) ที่ทีมทำเสร็จแล้ว</p>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>Sprint</th><th>PBI</th><th>ชื่อ</th><th>Priority</th><th>ชั้นที่แตะ</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="2"><a href="sprint1.html"><b>Sprint 1</b></a><br><span class="muted small">3–9 พ.ย.</span></td><td>1</td><td>VIEW-ALL-SCHEDULE</td><td>Must</td><td><span class="badge fe">FE</span> <span class="badge be">BE</span> <span class="badge db">DB</span></td></tr>
+          <tr><td>2</td><td>VIEW-SCHEDULE-BY-YEAR-LEVEL</td><td>Must</td><td><span class="badge fe">FE</span> <span class="badge be">BE</span></td></tr>
+          <tr><td rowspan="5"><a href="sprint2.html"><b>Sprint 2</b></a><br><span class="muted small">10–16 พ.ย.</span></td><td>3</td><td>SIGN-IN</td><td>Must</td><td><span class="badge auth">AUTH</span> <span class="badge fe">FE</span></td></tr>
+          <tr><td>4</td><td>VIEW-MY-SCHEDULE</td><td>Must</td><td><span class="badge fe">FE</span> <span class="badge be">BE</span> <span class="badge db">DB</span></td></tr>
+          <tr><td>5</td><td>SELECT-SECTION</td><td>Must</td><td><span class="badge fe">FE</span> <span class="badge be">BE</span> <span class="badge db">DB</span></td></tr>
+          <tr><td>6</td><td>REMOVE-SELECTION</td><td>Must</td><td><span class="badge fe">FE</span> <span class="badge be">BE</span></td></tr>
+          <tr><td>7</td><td>CHANGE-SECTION</td><td>Must</td><td><span class="badge fe">FE</span> <span class="badge be">BE</span></td></tr>
+          <tr><td rowspan="5"><a href="sprint3.html"><b>Sprint 3</b></a><br><span class="muted small">17–23 พ.ย.</span></td><td>8</td><td>VIEW-LECTURER-SCHEDULE</td><td>Must</td><td><span class="badge fe">FE</span> <span class="badge be">BE</span> <span class="badge db">DB</span></td></tr>
+          <tr><td>9</td><td>VALIDATE-REQUESTS</td><td>Should</td><td><span class="badge be">BE</span> <span class="badge fe">FE</span></td></tr>
+          <tr><td>10</td><td>PROTECT-API</td><td>Should</td><td><span class="badge auth">AUTH</span> <span class="badge be">BE</span> <span class="badge fe">FE</span></td></tr>
+          <tr><td>11</td><td>WARN-SELECTION-CLASH</td><td>Should</td><td><span class="badge be">BE</span> <span class="badge fe">FE</span></td></tr>
+          <tr><td>12</td><td>VIEW-WEEKLY-TIMETABLE</td><td>Should</td><td><span class="badge fe">FE</span> <span class="badge be">BE</span> <span class="badge db">DB</span></td></tr>
+          <tr><td><span class="muted">Sprint 4</span></td><td class="muted">13–15</td><td class="muted">CANCEL-SESSION · ADD-MAKEUP-SESSION · WARN-MAKEUP-CLASH</td><td class="muted">Could</td><td class="muted">ยังไม่ปล่อย</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid c3">
+      <a class="card link fe" href="sprint1.html"><div class="icon">1️⃣</div><h3>Sprint 1 — Guest</h3><p class="muted">ตารางเรียนทั้งหมด + filter ตามชั้นปี, API แรก, ตาราง DB แรก, เรียงลำดับ 6 ขั้น</p></a>
+      <a class="card link be" href="sprint2.html"><div class="icon">2️⃣</div><h3>Sprint 2 — Student</h3><p class="muted">Keycloak login, ถอดรหัสนักศึกษา, fixed vs option, Select / Remove / Change</p></a>
+      <a class="card link db" href="sprint3.html"><div class="icon">3️⃣</div><h3>Sprint 3 — Lecturer & Security</h3><p class="muted">ตารางสอน, RFC 9457, JWT verify, ตรวจเวลาชน, ตารางรายสัปดาห์</p></a>
+    </div>
+
+    <h2 id="tree">โครงสร้างโฟลเดอร์ของโปรเจกต์</h2>
+    <p>สีบอกชั้นของไฟล์ — ดูความสัมพันธ์ระหว่างไฟล์แบบคลิกได้ที่หน้า <a href="filemap.html">🗺️ File Map</a></p>
+<div class="tree"><span class="d">int504-2026-project-group-43/</span>
+├── <span class="infra">.github/workflows/ci.yml</span>      <span class="c"># CI: import DB → start backend → ยิงทดสอบ API ทุก PBI</span>
+├── <span class="d">frontend/</span>                     <span class="c"># 🎨 ไฟล์ static ที่ browser โหลด</span>
+│   ├── <span class="fe">index.html</span>                <span class="c"># หน้า Guest (PBI1–2)</span>
+│   ├── <span class="fe">my-schedule.html</span>          <span class="c"># หน้า Student / Lecturer (PBI3–12)</span>
+│   ├── <span class="fe">css/style.css</span>             <span class="c"># ธีม Liquid Glass</span>
+│   └── <span class="d">js/</span>
+│       ├── <span class="fe">main.js</span>               <span class="c"># entry ของ index.html</span>
+│       ├── <span class="fe">api.js</span>                <span class="c"># fetch schedules + cache</span>
+│       ├── <span class="fe">my-schedule-main.js</span>   <span class="c"># entry ของ my-schedule.html (state + routing)</span>
+│       ├── <span class="fe">my-schedule-api.js</span>    <span class="c"># เรียก API ของนักศึกษา/อาจารย์</span>
+│       ├── <span class="fe">timetable-api.js</span>      <span class="c"># เรียก API ตารางรายสัปดาห์</span>
+│       ├── <span class="auth">auth.js · config.js</span>   <span class="c"># Keycloak sign-in / authFetch</span>
+│       ├── <span class="auth">vendor/keycloak.js</span>    <span class="c"># ไลบรารี keycloak-js (ES module)</span>
+│       ├── <span class="d">components/</span>           <span class="c"># วาด UI: table, filter, modal, my-schedule, timetable</span>
+│       └── <span class="d">utils/</span>                <span class="c"># formatters.js, date-utils.js</span>
+├── <span class="d">backend/</span>                      <span class="c"># ⚙️ Express API</span>
+│   ├── <span class="be">package.json</span>
+│   ├── <span class="db">prisma/schema.prisma</span>      <span class="c"># แผนที่ตาราง DB → Model ของ Prisma</span>
+│   └── <span class="d">src/</span>
+│       ├── <span class="be">server.js · app.js</span>    <span class="c"># จุดเริ่ม / ประกอบ router</span>
+│       ├── <span class="d">routes/</span>               <span class="c"># URL → middleware → controller</span>
+│       ├── <span class="d">middleware/</span>           <span class="c"># auth (JWT), validate (400), errorHandler (RFC 9457)</span>
+│       ├── <span class="d">controllers/</span>          <span class="c"># รับ req / ส่ง res</span>
+│       ├── <span class="d">services/</span>             <span class="c"># business logic (fixed, clash, profile)</span>
+│       ├── <span class="d">repositories/</span>         <span class="c"># คุยกับ DB ผ่าน Prisma</span>
+│       ├── <span class="d">utils/</span>                <span class="c"># formatter / sorter / week</span>
+│       └── <span class="d">config/</span>               <span class="c"># prisma.js (ใช้จริง), db.js (mysql2 — ไม่ได้ใช้แล้ว)</span>
+├── <span class="d">database/</span>
+│   └── <span class="db">init.sql</span>                  <span class="c"># 🗄️ สร้าง DB + seed ทั้งหมด (Docker & CI ใช้ไฟล์นี้)</span>
+└── <span class="d">db_design/</span>                    <span class="c"># เอกสารออกแบบ: ER diagram, data dictionary, migration ราย Sprint</span>
+</div>
+
+    <h2 id="layers">ดูตามชั้น (Layer)</h2>
+    <div class="grid c4">
+      <a class="card link fe" href="frontend.html"><div class="icon">🎨</div><h3>Frontend</h3><p class="muted small">ES Modules, การแยก api / components / utils, state & cache, routing ด้วย URL</p></a>
+      <a class="card link be" href="backend.html"><div class="icon">⚙️</div><h3>Backend</h3><p class="muted small">Layered architecture: route → middleware → controller → service → repository</p></a>
+      <a class="card link db" href="database.html"><div class="icon">🗄️</div><h3>Database</h3><p class="muted small">ER diagram, 11 ตาราง, Prisma schema, migration, sessions 1,181 แถว</p></a>
+      <a class="card link infra" href="devops.html"><div class="icon">🚀</div><h3>Deploy & CI</h3><p class="muted small">Docker 4 containers, proxy path, GitHub Actions quality gate, Playwright</p></a>
+    </div>
+
+    <h2 id="legend">วิธีอ่านเว็บนี้</h2>
+    <div class="grid c2">
+      <div class="card">
+        <h4>สัญลักษณ์</h4>
+        <ul>
+          <li><span class="file be">services/x.js</span> = ชื่อไฟล์ (สีขอบบอกชั้น)</li>
+          <li><b>🔁 ทางเลือกอื่น</b> = กล่องแท็บเปรียบเทียบ “โค้ดปัจจุบัน” กับ “วิธีอื่นที่ใช้แทนได้” พร้อมข้อดี/ข้อเสีย</li>
+          <li><b>🧪 ลองเล่น</b> = widget ที่ลองกรอกค่าแล้วเห็นผลทันที</li>
+          <li><b>▶ Stepper</b> = กดดูการทำงานทีละขั้น</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>ลำดับที่แนะนำ</h4>
+        <ol>
+          <li>อ่านหน้านี้ให้เห็นภาพใหญ่</li>
+          <li>ไล่ Sprint 1 → 2 → 3 (ฟีเจอร์ต่อยอดกันเรื่อย ๆ)</li>
+          <li>เปิดหน้า Layer เมื่ออยากเข้าใจ pattern ของชั้นนั้นทั้งหมด</li>
+          <li>ใช้ File Map เมื่ออยากรู้ว่า “ไฟล์นี้ถูกใครเรียก”</li>
+        </ol>
+      </div>
+    </div>
+
+  </main>
+</div>
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprint 3 — อาจารย์, Validation, Security, Clash & Weekly Timetable | ITB-CSV Explained</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+</head>
+<body data-page="sprint3">
+<div class="layout">
+  <aside class="toc"></aside>
+  <main>
+
+    <section class="hero">
+      <div class="kicker">SPRINT 3 · 17–23 NOVEMBER 2026</div>
+      <h1>Sprint 3 — ตารางอาจารย์, ป้องกัน API, แจ้งเตือนชน และตารางรายสัปดาห์</h1>
+      <p class="lead">Sprint ที่เข้มข้นที่สุด: เพิ่มมุมมองอาจารย์, บังคับมาตรฐาน Error (RFC 9457), ล็อก API ด้วย JWT/JWKS, ตรวจเวลาเรียนชน และสร้างปฏิทินรายสัปดาห์ 1,181 คาบ</p>
+      <p>
+        <span class="badge db">PBI8 LECTURER</span>
+        <span class="badge be">PBI9 VALIDATE</span>
+        <span class="badge auth">PBI10 PROTECT-API</span>
+        <span class="badge warn">PBI11 CLASH</span>
+        <span class="badge fe">PBI12 WEEKLY TIMETABLE</span>
+      </p>
+    </section>
+
+    <h2 id="overview">ภาพรวม 5 PBI ของ Sprint 3</h2>
+    <div class="table-wrap">
+      <table class="t">
+        <thead><tr><th>PBI</th><th>ชื่อ</th><th>สาระสำคัญ</th><th>API ใหม่ / ที่เปลี่ยน</th></tr></thead>
+        <tbody>
+          <tr><td><b>8</b></td><td>VIEW-LECTURER-SCHEDULE</td><td>อาจารย์ดูตารางสอน + นักศึกษาเห็นคอลัมน์ Instructor</td><td><code>GET /api/v1/lecturers/:username/schedules</code><br><code>year-levels</code> เพิ่ม <code>lecturers[]</code></td></tr>
+          <tr><td><b>9</b></td><td>VALIDATE-REQUESTS</td><td>ตรวจ input ทุก field + Error เป็น RFC 9457 ทั้งระบบ</td><td>ทุก endpoint (<code>application/problem+json</code>)</td></tr>
+          <tr><td><b>10</b></td><td>PROTECT-API</td><td>ตรวจ Bearer JWT (4 ข้อ) + Role + เจ้าของข้อมูล</td><td>ล็อก <code>students/</code>, <code>lecturers/</code>, <code>year-levels/</code></td></tr>
+          <tr><td><b>11</b></td><td>WARN-SELECTION-CLASH</td><td>ตรวจคาบชน (วัน+เวลา+สัปดาห์) → 409 + <code>acceptClash</code></td><td><code>POST/PUT .../selections</code></td></tr>
+          <tr><td><b>12</b></td><td>VIEW-WEEKLY-TIMETABLE</td><td>ดูตารางเรียน/สอนรายสัปดาห์ตามวันที่ + วันหยุด + cache</td><td><code>GET /api/v1/semester</code><br><code>GET .../sessions?date=YYYY-MM-DD</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ================= PBI 8 ================= -->
+    <h2 id="pbi8">👩‍🏫 PBI8 — อาจารย์ดูตารางสอน &amp; คอลัมน์ Instructor</h2>
+    <p>แนวคิดสำคัญใน DB: <b>“อาจารย์สอนที่ <code>schedule</code> ไม่ใช่ที่ <code>course</code>”</b> เพราะ 1 คาบมีอาจารย์ 2 คนได้ (เช่น DSI111) และคนละ section ของวิชาเดียวกันก็มีอาจารย์คนละคนได้ (เช่น INT101) จึงต้องใช้ความสัมพันธ์แบบ <b>Many-to-Many</b></p>
+
+    <pre class="mermaid">
+erDiagram
+  courses ||--o{ courses_schedule : "has"
+  courses_schedule ||--o{ schedule_lecturer : "taught by"
+  lecturers ||--o{ schedule_lecturer : "teaches"
+  lecturers {
+    int id PK
+    varchar username UK
+    varchar first_name
+    varchar last_name
+  }
+  schedule_lecturer {
+    int schedule_id PK,FK
+    int lecturer_id PK,FK
+  }
+    </pre>
+
+    <script type="text/x-code" data-path="backend/src/repositories/lecturer.repository.js + services/lecturer.service.js">
+      // lecturer.repository.js — ดึงตารางสอนของอาจารย์ผ่านตารางเชื่อม schedule_lecturer
+      export async function findSchedulesByLecturerId(lecturerId) {
+        const rows = await prisma.scheduleLecturer.findMany({
+          where: { lecturerId },
+          include: { schedule: { include: { course: true } } }
+        });
+        return rows.map((row) => row.schedule);
+      }
+
+      // lecturer.service.js — ถ้าไม่มีชื่อใน lecturers → 404 lecturer-not-found
+      export async function getSchedulesByUsername(username) {
+        const lecturer = await lecturerRepo.findByUsername(username);
+        if (!lecturer) {
+          throw AppError.problem(
+            PROBLEM_TYPES.LECTURER_NOT_FOUND,
+            `Lecturer '${username}' is not in this semester's lecturer records.`
+          );
+        }
+        const rawSchedules = await lecturerRepo.findSchedulesByLecturerId(lecturer.id);
+        return {
+          lecturer: lecturer.username,
+          schedules: sortSchedules(rawSchedules.map(formatLecturersSchedule)) // มี room แต่ไม่มี lecturers ซ้ำ
+        };
+      }
+    </script>
+    <p class="small">ฝั่ง <b>Frontend</b>: นักศึกษาเห็นคอลัมน์ <code>Instructor</code> คั่นระหว่าง Room กับ Remarks โดยใช้ <code>formatLecturers()</code> ใน <span class="file fe">utils/formatters.js</span> ต่อชื่อ <code>"First Last"</code> คั่นด้วย <code>", "</code> ส่วนอาจารย์เห็นตาราง <code>Teaching Schedule</code> (มีคอลัมน์ <code>Year</code> เพิ่มเข้ามา ไม่มี Instructor) — ถ้าไม่มีคาบสอนโชว์ <code>lecturer-empty</code> ถ้าไม่มีชื่อในระบบโชว์ <code>not-lecturer</code></p>
+
+    <!-- ================= PBI 9 ================= -->
+    <h2 id="pbi9">🛡️ PBI9 — ตรวจสอบ Request &amp; Error มาตรฐาน RFC 9457</h2>
+    <p>กฎเหล็ก 2 ข้อของ PBI9:</p>
+    <ol>
+      <li><b>ลำดับการตรวจสอบ (Check first what needs no data):</b> <code>401 → 403 → 400 → 404 → 409</code></li>
+      <li><b>ทุก Error (400–499)</b> ต้องตอบด้วย <code>Content-Type: application/problem+json</code> และโครงสร้างเดียวกันหมด</li>
+    </ol>
+
+    <div class="flow">
+      <div class="node auth"><b>1. 401</b>คุณเป็นใคร?<br><span class="small muted">Token ถูกต้องไหม</span></div><span class="arrow">→</span>
+      <div class="node auth"><b>2. 403</b>คุณมีสิทธิ์ไหม?<br><span class="small muted">Role &amp; ID ของตัวเอง</span></div><span class="arrow">→</span>
+      <div class="node be"><b>3. 400</b>Request ถูกไหม?<br><span class="small muted">ชนิดข้อมูล/ช่วงค่า/JSON</span></div><span class="arrow">→</span>
+      <div class="node db"><b>4. 404</b>มีข้อมูลไหม?<br><span class="small muted">Student/Section/Selection</span></div><span class="arrow">→</span>
+      <div class="node warn"><b>5. 409</b>ชนกันไหม?<br><span class="small muted">Already selected → Clash</span></div>
+    </div>
+
+    <script type="text/x-code" data-path="backend/src/middleware/errorHandler.js" data-note="ศูนย์รวม RFC 9457 ของทั้งระบบ">
+      const PROBLEM_TYPES = Object.freeze({
+        VALIDATION_FAILED:   { type: 'urn:itb-csv:problem:validation-failed',   title: 'Validation failed',   status: 400 },
+        UNAUTHORIZED:        { type: 'urn:itb-csv:problem:unauthorized',        title: 'Unauthorized',        status: 401 },
+        FORBIDDEN:           { type: 'urn:itb-csv:problem:forbidden',           title: 'Forbidden',           status: 403 },
+        STUDENT_NOT_FOUND:   { type: 'urn:itb-csv:problem:student-not-found',   title: 'Student not found',   status: 404 },
+        SECTION_NOT_FOUND:   { type: 'urn:itb-csv:problem:section-not-found',   title: 'Section not found',   status: 404 },
+        SELECTION_NOT_FOUND: { type: 'urn:itb-csv:problem:selection-not-found', title: 'Selection not found', status: 404 },
+        LECTURER_NOT_FOUND:  { type: 'urn:itb-csv:problem:lecturer-not-found',  title: 'Lecturer not found',  status: 404 },
+        ALREADY_SELECTED:    { type: 'urn:itb-csv:problem:already-selected',    title: 'Already selected',    status: 409 },
+        SCHEDULE_CLASH:      { type: 'urn:itb-csv:problem:schedule-clash',      title: 'Schedule clash',      status: 409 },
+      });
+
+      const errorHandler = (err, req, res, next) => {
+        // ดัก JSON พังจาก express.json() (เช่นส่ง "{bad json")
+        if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+          res.setHeader('Content-Type', 'application/problem+json; charset=utf-8');
+          return res.status(400).json({
+            type: PROBLEM_TYPES.VALIDATION_FAILED.type,
+            title: PROBLEM_TYPES.VALIDATION_FAILED.title,
+            status: 400,
+            detail: 'Request body must be valid JSON.',
+            errors: [{ field: 'body', detail: 'must be valid JSON' }]
+          });
+        }
+        const statusCode = err.statusCode || err.status || 500;
+        if (statusCode >= 400 && statusCode < 500) {
+          res.setHeader('Content-Type', 'application/problem+json; charset=utf-8');
+          const problemBody = {
+            type: err.type || 'about:blank',
+            title: err.title || 'Error',
+            status: statusCode,
+            detail: err.message || null
+          };
+          if (Array.isArray(err.errors))  problemBody.errors = err.errors;
+          if (Array.isArray(err.clashes)) problemBody.clashes = err.clashes; // ใช้ใน PBI11
+          return res.status(statusCode).json(problemBody);
+        }
+        return res.status(statusCode).json({ message: err.message || 'Internal Server Error' });
+      };
+    </script>
+
+    <script type="text/x-code" data-path="backend/src/middleware/validate.js" data-note="เก็บ error ทุก field ไม่หยุดแค่ตัวแรก">
+      export function validateCreateSelection(req, res, next) {
+        const errors = [];
+        if (!isValidStudentId(req.params.studentId)) errors.push({ field: 'studentId', detail: 'must be 11 digits' });
+
+        if (!isPlainObject(req.body)) {
+          errors.push({ field: 'body', detail: 'must be a JSON object' });
+        } else {
+          // ตรวจครบทุก field แล้ว push ลง errors array (สังเกต typeof === 'number' เพื่อปฏิเสธ courseId: "3" แบบ string!)
+          if (!isValidBodyCourseId(req.body.courseId)) errors.push({ field: 'courseId', detail: 'must be an integer from 1 to 2147483647' });
+          if (!isValidSection(req.body.section))       errors.push({ field: 'section', detail: 'must be an integer from 1 to 99' });
+          if (!isValidAcceptClash(req.body.acceptClash)) errors.push({ field: 'acceptClash', detail: 'must be a boolean' });
+        }
+        return throwIfErrors(errors, next);
+      }
+    </script>
+
+    <p class="alt-title">ทางเลือกอื่น: ไลบรารี Validate Request</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: เขียนฟังก์ชันตรวจเอง">
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>ไม่ต้องลง dependency เพิ่ม คุมรูปแบบ <code>errors: [{ field, detail }]</code> ได้เป๊ะ 100%</li><li>อ่านตรงไปตรงมาไม่มีเวทมนตร์</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ถ้าโปรเจกต์ใหญ่มี 50 endpoint จะเขียนซ้ำเยอะ</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: Zod">
+        <script type="text/x-code">
+          import { z } from 'zod';
+
+          const createSelectionSchema = z.object({
+            courseId:    z.number().int().min(1).max(2147483647),
+            section:     z.number().int().min(1).max(99),
+            acceptClash: z.boolean().optional(),
+          });
+
+          const parsed = createSelectionSchema.safeParse(req.body);
+          if (!parsed.success) {
+            const errors = parsed.error.issues.map(i => ({ field: i.path.join('.'), detail: i.message }));
+            return next(AppError.problem(PROBLEM_TYPES.VALIDATION_FAILED, 'Invalid body', { errors }));
+          }
+        </script>
+        <p class="small">นิยมากในยุคปัจจุบัน เพราะประกาศ schema ครั้งเดียวได้ทั้ง runtime validation + TypeScript type</p>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก B: express-validator">
+        <script type="text/x-code">
+          import { body, param, validationResult } from 'express-validator';
+          router.post('/:studentId/selections',
+            param('studentId').matches(/^\d{11}$/),
+            body('courseId').isInt({ min: 1 }),
+            body('section').isInt({ min: 1, max: 99 }),
+            handleValidationResult, controller.createSelection);
+        </script>
+      </div>
+    </div>
+
+    <!-- ================= PBI 10 ================= -->
+    <h2 id="pbi10">🔐 PBI10 — ล็อก API ด้วย JWT + JWKS</h2>
+    <p>ตอน Sprint 2 Backend ยัง “เชื่อใจ” <code>studentId</code> ใน URL อยู่ — พอถึง PBI10 Backend ต้อง <b>ตรวจ Access Token ทุกครั้ง</b> บนเส้น <code>students/</code>, <code>lecturers/</code>, <code>year-levels/</code> (ส่วน <code>health</code>, <code>schedules</code>, <code>semester</code> เปิดสาธารณะเหมือนเดิม)</p>
+
+    <div class="grid c4">
+      <div class="card auth"><h4>1 · Signature</h4><p class="small">ตรวจลายเซ็นด้วย public key จาก JWKS ของ Keycloak</p></div>
+      <div class="card auth"><h4>2 · Issuer (iss)</h4><p class="small">ต้องออกโดย realm <code>itb-csv</code> ของวิชาเท่านั้น</p></div>
+      <div class="card auth"><h4>3 · Expiry (exp)</h4><p class="small">Token ต้องยังไม่หมดอายุ (อายุ 1 ชม.)</p></div>
+      <div class="card auth"><h4>4 · Client (azp)</h4><p class="small">ต้องออกให้ <code>ip26-zap</code> เท่านั้น! token ของทีมอื่นห้ามผ่าน</p></div>
+    </div>
+
+    <script type="text/x-code" data-path="backend/src/middleware/auth.middleware.js">
+      import { createRemoteJWKSet, jwtVerify } from 'jose';
+      import { AppError, PROBLEM_TYPES } from './errorHandler.js';
+
+      const KEYCLOAK_ISSUER = process.env.KEYCLOAK_ISSUER || 'https://bscit.sit.kmutt.ac.th/intproj26/keycloak/realms/itb-csv';
+      const KEYCLOAK_JWKS_URI = process.env.KEYCLOAK_JWKS_URI || `${KEYCLOAK_ISSUER}/protocol/openid-connect/certs`;
+      const KEYCLOAK_JWKS = createRemoteJWKSet(new URL(KEYCLOAK_JWKS_URI)); // ดึงและ cache public key อัตโนมัติ
+
+      // ตรวจ 401: Signature, Issuer, Expiry, azp
+      export async function requireAccessToken(req, res, next) {
+        const token = getBearerToken(req);
+        if (!token) return next(unauthorized());
+        try {
+          const { payload } = await jwtVerify(token, KEYCLOAK_JWKS, { issuer: KEYCLOAK_ISSUER });
+          if (payload.azp !== process.env.TEAM_CODE) {
+            return next(unauthorized('The access token was not issued to this client.'));
+          }
+          req.auth = payload;                               // แนบ claims ไว้ให้ middleware ถัดไปใช้
+          return next();
+        } catch {
+          return next(unauthorized('The access token is invalid.'));
+        }
+      }
+
+      // ตรวจ 403 (1): Role ตรงไหม
+      export function requireRole(...allowedRoles) {
+        return (req, res, next) => {
+          const roles = req.auth?.realm_access?.roles;
+          if (!Array.isArray(roles) || !roles.some(r => allowedRoles.includes(r))) {
+            return next(AppError.problem(PROBLEM_TYPES.FORBIDDEN, 'Your role is not allowed.'));
+          }
+          return next();
+        };
+      }
+
+      // ตรวจ 403 (2): ขอดู/แก้เฉพาะข้อมูลของตัวเองเท่านั้น (กันนักศึกษา A แอบดูของนักศึกษา B)
+      export function requireSelf(paramName) {
+        return (req, res, next) => {
+          if (req.auth?.preferred_username !== req.params[paramName]) {
+            return next(AppError.problem(PROBLEM_TYPES.FORBIDDEN, 'You may access only your own data.'));
+          }
+          return next();
+        };
+      }
+    </script>
+
+    <h3 id="pbi10-fe">ฝั่ง Frontend: ต่ออายุ Token “ก่อน” ยิง (<code>authFetch</code>)</h3>
+    <script type="text/x-code" data-path="frontend/js/auth.js">
+      // ต่ออายุล่วงหน้าถ้าเหลือเวลา < 30 วินาที → หน้าเว็บที่ถูกต้องจะไม่มีวันเจอ 401 จาก token หมดอายุ
+      export async function authFetch(url, options = {}) {
+        try {
+          await keycloak.updateToken(30);
+        } catch {
+          await keycloak.login({ redirectUri: window.location.href }); // session 10 ชม. หมดแล้ว → sign in ใหม่แล้วกลับมาหน้าเดิม
+          return new Promise(() => {});                                // ค้าง promise ไว้ระหว่างเบราว์เซอร์กำลัง redirect
+        }
+        const headers = new Headers(options.headers);
+        headers.set('Authorization', `Bearer ${keycloak.token}`);
+        return fetch(url, { ...options, headers });
+      }
+    </script>
+
+    <p class="alt-title">ทางเลือกอื่น: ตรวจ JWT ใน Express</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: jose">
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>Zero dependency, เป็น ESM แท้, cache JWKS + key rotation อัตโนมัติ</li><li>รองรับ Web Crypto (ใช้ได้ทั้ง Node และ Edge runtime)</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ต้องเขียน Express middleware ห่อเอง (~50 บรรทัด)</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: express-oauth2-jwt-bearer">
+        <script type="text/x-code">
+          import { auth } from 'express-oauth2-jwt-bearer';
+          const checkJwt = auth({
+            issuerBaseURL: 'https://bscit.sit.kmutt.ac.th/intproj26/keycloak/realms/itb-csv',
+            tokenSigningAlg: 'RS256',
+          });
+          // สั้นมาก แต่ต้องเขียน middleware แยกเพื่อเช็ค azp และแปลง error เป็น RFC 9457 เอง
+        </script>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก B: jsonwebtoken + jwks-rsa">
+        <p class="small">คู่หูยุคเก่าที่พบได้บ่อยใน tutorial — ยังใช้งานได้แต่ต้องลง 2 package และจัดการ async callback + caching เพิ่มเอง ปัจจุบันคนย้ายมาใช้ <code>jose</code> กันมากกว่า</p>
+      </div>
+    </div>
+
+    <!-- ================= PBI 11 ================= -->
+    <h2 id="pbi11">⚡ PBI11 — แจ้งเตือนตารางเรียนชน (Schedule Clash)</h2>
+    <p>สองคาบจะถือว่า <b>ชนกัน (overlap)</b> ก็ต่อเมื่อ <b>เงื่อนไขครบทั้ง 3 ข้อ</b> พร้อมกัน ใน <span class="file be">services/selection.service.js</span>:</p>
+
+    <script type="text/x-code" data-path="backend/src/services/selection.service.js">
+      function isScheduleClashing(first, second) {
+        const sameDay      = first.dayOfWeek === second.dayOfWeek;
+        // ใช้ "<" (ไม่ใช่ "<=") เพราะ 09:30-12:30 กับ 12:30-15:30 แค่ "แตะกัน" ไม่ถือว่าชน!
+        const timeOverlaps = first.startTime < second.endTime && second.startTime < first.endTime;
+        // ใช้ "<=" เพราะถ้ามีสัปดาห์ซ้ำกันแค่สัปดาห์เดียวก็ถือว่าเจอกัน
+        const weeksOverlap = first.startWeek <= second.endWeek && second.startWeek <= first.endWeek;
+        return sameDay && timeOverlaps && weeksOverlap;
+      }
+    </script>
+
+    <div class="widget" id="clash-widget">
+      <div class="w-title">ลองเล่น: เครื่องจำลองตรวจเวลาชน (Clash Simulator)</div>
+      <p class="small muted">ลองกดปุ่มตัวอย่าง edge case จาก Test Data แถว 93–97 หรือปรับเวลาเอง</p>
+      <div class="row" style="margin-bottom:8px">
+        <button type="button" class="btn" data-preset="overlap">ชนจริง (INT511 vs LNG224 s4)</button>
+        <button type="button" class="btn" data-preset="touch">แค่แตะกัน (09:30–12:30 vs 12:30–15:30)</button>
+        <button type="button" class="btn" data-preset="diffweek">คนละช่วงสัปดาห์ (W1–10 vs W11–15)</button>
+      </div>
+      <div class="row">
+        <div><label>คาบ A: วัน</label><select id="ca-day"><option>MONDAY</option><option selected>TUESDAY</option><option>WEDNESDAY</option><option>THURSDAY</option><option>FRIDAY</option></select></div>
+        <div><label>เริ่ม–จบ</label><input id="ca-s" value="09:00" style="width:74px"> – <input id="ca-e" value="12:30" style="width:74px"></div>
+        <div><label>สัปดาห์</label><input id="ca-ws" type="number" value="1" min="1" max="15" style="width:58px"> – <input id="ca-we" type="number" value="15" min="1" max="15" style="width:58px"></div>
+      </div>
+      <div class="row">
+        <div><label>คาบ B: วัน</label><select id="cb-day"><option>MONDAY</option><option selected>TUESDAY</option><option>WEDNESDAY</option><option>THURSDAY</option><option>FRIDAY</option></select></div>
+        <div><label>เริ่ม–จบ</label><input id="cb-s" value="10:30" style="width:74px"> – <input id="cb-e" value="13:30" style="width:74px"></div>
+        <div><label>สัปดาห์</label><input id="cb-ws" type="number" value="1" min="1" max="15" style="width:58px"> – <input id="cb-we" type="number" value="15" min="1" max="15" style="width:58px"></div>
+      </div>
+      <div class="tl" id="clash-tl"></div>
+      <div class="out" id="clash-out" style="margin-top:26px"></div>
+    </div>
+
+    <div class="callout note"><span class="t">🔎 รายละเอียดที่ทำให้ผ่านครบทุก Edge Case</span>
+      <ul>
+        <li><b>ตอน Change (PUT):</b> ต้องส่ง <code>excludeCourseId = numericCourseId</code> เพื่อไม่ให้ section ใหม่ไปเทียบชนกับ section เก่าของวิชาตัวเอง!</li>
+        <li><b>Section ที่มีหลายวัน:</b> เช่น LNG320 sec 8 (แถว 96–97 เรียนจันทร์ + พฤหัส) โค้ดวนลูป <b>ทุกแถวของ section ใหม่</b> เทียบกับ <code>[...fixedSchedules, ...selectedSchedules]</code> แล้วเก็บใน <code>Map</code> เพื่อกันรายการซ้ำ</li>
+        <li><b>แยก 409 สองชนิดบน Frontend:</b> ดูจาก <code>result.type.endsWith("schedule-clash")</code> → เปิด <code>showClashDialog</code> (ปุ่ม <b>Select anyway / Change anyway</b> ส่ง request เดิมซ้ำพร้อม <code>"acceptClash": true</code>) ส่วน <code>already-selected</code> แสดง dialog เดิมของ PBI5</li>
+      </ul>
+    </div>
+
+    <!-- ================= PBI 12 ================= -->
+    <h2 id="pbi12">📅 PBI12 — ตารางเรียนรายสัปดาห์ (Weekly Timetable)</h2>
+    <p>เปลี่ยนมุมมองจาก “ตารางรวมทั้งเทอม (Courses)” มาเป็น <b>“สัปดาห์นี้เรียนวันไหนบ้าง (Weekly Timetable)”</b> พร้อมแสดงวันหยุดและจัดการวันสอบ</p>
+
+    <h3 id="pbi12-db">1) Database: สร้าง 1,181 Sessions อัตโนมัติด้วย SQL CTE</h3>
+    <p>Test Data ให้มา 3 ตารางปฏิทิน: <code>academic_weeks</code> (19 สัปดาห์), <code>holidays</code> (7 วันหยุด), <code>exam_periods</code> (3 ช่วงสอบ) — ส่วนตาราง <code>sessions</code> (1,181 แถว) ทีมเขียนสคริปต์ SQL ใน <span class="file db">database/init.sql</span> และ <span class="file db">db_design/sprint3_migration.sql</span> สร้างขึ้นมาให้เป๊ะทุก id:</p>
+
+    <script type="text/x-code" data-lang="sql" data-path="db_design/sprint3_migration.sql" data-note="หัวใจการ generate 1,181 sessions">
+      INSERT INTO `sessions` (`id`, `schedule_id`, `date`, `start_time`, `end_time`)
+      WITH `calculated_sessions` AS (
+        SELECT
+          cs.`id` AS `schedule_id`,
+          -- เอาวันจันทร์ของสัปดาห์นั้น (aw.start_date) + จำนวนวันตาม day_of_week (MONDAY=0 ... SUNDAY=6)
+          DATE_ADD(aw.`start_date`, INTERVAL (
+            CASE cs.`day_of_week`
+              WHEN 'MONDAY' THEN 0 WHEN 'TUESDAY' THEN 1 WHEN 'WEDNESDAY' THEN 2
+              WHEN 'THURSDAY' THEN 3 WHEN 'FRIDAY' THEN 4 WHEN 'SATURDAY' THEN 5 WHEN 'SUNDAY' THEN 6
+            END
+          ) DAY) AS `session_date`,
+          cs.`start_time`, cs.`end_time`
+        FROM `courses_schedule` cs
+        INNER JOIN `academic_weeks` aw
+          ON aw.`kind` = 'TEACHING'
+         AND aw.`teaching_week` BETWEEN cs.`start_week` AND cs.`end_week`
+      )
+      SELECT
+        -- รันเลข id 1..1181 ตามกฎ: date → start_time → schedule_id
+        ROW_NUMBER() OVER (ORDER BY c.`session_date`, c.`start_time`, c.`schedule_id`) AS `id`,
+        c.`schedule_id`, c.`session_date`, c.`start_time`, c.`end_time`
+      FROM `calculated_sessions` c
+      INNER JOIN `academic_settings` ast ON ast.`id` = 1
+      WHERE c.`session_date` BETWEEN ast.`semester_start_date` AND ast.`semester_end_date`
+        -- ตัดวันที่ตกอยู่ในช่วงสอบออก (เช่น จันทร์ 26/10/2026 วันสุดท้ายของ Exam 2) — แต่วันหยุดยังคงไว้!
+        AND NOT EXISTS (
+          SELECT 1 FROM `exam_periods` ep
+          WHERE c.`session_date` BETWEEN ep.`start_date` AND ep.`end_date`
+        );
+    </script>
+
+    <p class="alt-title">ทางเลือกอื่น: สร้างตาราง <code>sessions</code> ด้วยอะไรดี?</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: SQL CTE + ROW_NUMBER()">
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>รันจบในไฟล์ <code>init.sql</code> เดียวตอนเปิด MySQL container ไม่ต้องรัน Node script แยก</li><li>เร็วมากและรับประกันความ deterministic 100%</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>Syntax ค่อนข้างยาว อ่านยากกว่า JS สำหรับมือใหม่</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: Node.js + Prisma seed script">
+        <script type="text/x-code">
+          // prisma/seed-sessions.js — อ่าน schedules, academic_weeks, exam_periods แล้ว loop สร้าง array
+          // sort ด้วย (a, b) => a.date.localeCompare(b.date) || a.startTime - b.startTime || a.scheduleId - b.scheduleId
+          // แล้ว prisma.session.createMany({ data: sessionsWithIds })
+        </script>
+        <p class="small">เขียนและ debug ง่ายกว่า แต่ต้องจำรัน script เพิ่มหลังจาก import SQL ทุกครั้ง</p>
+      </div>
+    </div>
+
+    <h3 id="pbi12-be">2) Backend: คำนวณช่วงสัปดาห์ (จันทร์–อาทิตย์)</h3>
+    <script type="text/x-code" data-path="backend/src/utils/week.util.js + services/academic.service.js">
+      // week.util.js — รับวันที่ใดก็ได้ในสัปดาห์ → คืนวันจันทร์ (startDate) และวันอาทิตย์ (endDate) ใน UTC
+      export function getWeekRange(dateValue) {
+        const date = new Date(`${dateValue}T00:00:00.000Z`);
+        const day = date.getUTCDay();                  // อาทิตย์=0, จันทร์=1, ..., เสาร์=6
+        const diffToMonday = day === 0 ? -6 : 1 - day; // ถอยกลับไปวันจันทร์
+        const startDate = new Date(date); startDate.setUTCDate(date.getUTCDate() + diffToMonday);
+        const endDate = new Date(startDate); endDate.setUTCDate(startDate.getUTCDate() + 6);
+        return { startDate, endDate };
+      }
+
+      // academic.service.js — ดึง label สัปดาห์ (เช่น "W14") และวันหยุดของสัปดาห์นั้นพร้อมกัน
+      export async function getWeekInfo(dateValue) {
+        const { startDate, endDate } = getWeekRange(dateValue);
+        const [academicWeek, holidays] = await Promise.all([
+          academicRepo.findAcademicWeek(startDate),
+          academicRepo.findHolidays(startDate, endDate)
+        ]);
+        return {
+          weekStart: formatDate(startDate), weekEnd: formatDate(endDate),
+          label: academicWeek ? academicWeek.label : null,
+          holidays: holidays.map(formatHoliday)
+        };
+      }
+    </script>
+
+    <h3 id="pbi12-fe">3) Frontend: URL Routing, Lazy Load &amp; Week Cache</h3>
+    <p>ไฟล์ <span class="file fe">my-schedule-main.js</span> + <span class="file fe">timetable-api.js</span> + <span class="file fe">components/timetable-renderer.js</span> + <span class="file fe">utils/date-utils.js</span> ทำงานร่วมกันเพื่อทำตามกฎ TR-06:</p>
+    <ul>
+      <li><b>Lazy Fetch:</b> เปิด <code>?view=courses</code> จะไม่ยิง <code>/sessions</code> — เปิด <code>?view=timetable</code> จะไม่ยิง <code>/year-levels</code> จนกว่าจะกดสลับมุมมอง</li>
+      <li><b>Week Cache:</b> เก็บผลลัพธ์ใน <code>sessionsCache = new Map()</code> โดยใช้ <code>mondayOf(date)</code> เป็น key → กดย้อนไปดูสัปดาห์เดิมไม่ยิงซ้ำ!</li>
+      <li><b>Cache Invalidation:</b> ทันทีที่นักศึกษา Select / Remove / Change วิชาสำเร็จ ต้องเรียก <code>sessionsCache.clear()</code> เพราะตารางรายสัปดาห์เปลี่ยนไปแล้ว!</li>
+      <li><b>URL Normalization:</b> ถ้า URL มีค่ามั่ว เช่น <code>?view=grid&amp;date=abc</code> → <code>normalizeUrlParams()</code> ลบออกด้วย <code>history.replaceState</code> ไม่ให้ค้าง</li>
+      <li><b>Bangkok Timezone:</b> <code>getTodayBangkok()</code> ใช้ <code>Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' })</code> เพื่อเช็คว่า “วันนี้” อยู่ในเทอมไหมตามเวลาไทยเป๊ะ (คืนรูป <code>YYYY-MM-DD</code>)</li>
+    </ul>
+
+    <pre class="mermaid">
+flowchart TD
+  OPEN["เปิด my-schedule.html"] --> NORM["normalizeUrlParams()<br/>ลบ ?view / ?date ที่ผิด"]
+  NORM --> CHK{"ดู ?view และ ?date"}
+  CHK -->|"?view=courses"| VC["showCoursesView()<br/>(โหลด Courses ครั้งแรกเท่านั้น)"]
+  CHK -->|"?view=timetable"| VT["showTimetableView(date || today)"]
+  CHK -->|"ไม่มี param"| SEM["GET /api/v1/semester"]
+  SEM -->|"today อยู่ในเทอม"| VT
+  SEM -->|"นอกเทอม"| VC
+  VT --> CACHE{"มี weekStart ใน<br/>sessionsCache?"}
+  CACHE -->|"มี"| REN["renderWeeklyTimetable()"]
+  CACHE -->|"ไม่มี"| API["GET .../sessions?date=..."] --> SAVE["เก็บเข้า sessionsCache"] --> REN
+    </pre>
+
+  </main>
+</div>
+<script type="module" src="assets/app.js"></script>
+<script>
+// Interactive Schedule Clash Simulator
+(() => {
+  const $ = id => document.getElementById(id);
+  const toMin = t => {
+    const m = /^(\d{2}):(\d{2})$/.exec(t.trim());
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+  };
+  const presets = {
+    overlap:  { ad:'TUESDAY', as:'09:00', ae:'12:30', aws:1, awe:15, bd:'TUESDAY', bs:'10:30', be:'13:30', bws:1, bwe:15 },
+    touch:    { ad:'MONDAY',  as:'09:30', ae:'12:30', aws:1, awe:15, bd:'MONDAY',  bs:'12:30', be:'15:30', bws:1, bwe:15 },
+    diffweek: { ad:'TUESDAY', as:'14:00', ae:'17:00', aws:1, awe:10, bd:'TUESDAY', bs:'14:00', be:'17:00', bws:11, bwe:15 },
+  };
+  function update() {
+    const ad = $('ca-day').value, bd = $('cb-day').value;
+    const as = $('ca-s').value, ae = $('ca-e').value, bs = $('cb-s').value, be = $('cb-e').value;
+    const aws = Number($('ca-ws').value), awe = Number($('ca-we').value);
+    const bws = Number($('cb-ws').value), bwe = Number($('cb-we').value);
+    const am1 = toMin(as), am2 = toMin(ae), bm1 = toMin(bs), bm2 = toMin(be);
+    if ([am1, am2, bm1, bm2].some(x => x === null) || am1 >= am2 || bm1 >= bm2) {
+      $('clash-out').innerHTML = '<span class="bad">กรุณาใส่เวลาแบบ HH:MM โดยเวลาเริ่มน้อยกว่าเวลาจบ</span>';
+      return;
+    }
+    const sameDay = ad === bd;
+    const timeOverlaps = as < be && bs < ae;
+    const weeksOverlap = aws <= bwe && bws <= awe;
+    const clash = sameDay && timeOverlaps && weeksOverlap;
+
+    // Draw timeline 08:00 (480) to 20:00 (1200)
+    const minT = 480, span = 720;
+    const pct = m => Math.max(0, Math.min(100, ((m - minT) / span) * 100));
+    const ticks = [8,10,12,14,16,18,20].map(h => `<span class="tick" style="left:${pct(h*60)}%">${String(h).padStart(2,'0')}:00</span>`).join('');
+    $('clash-tl').innerHTML = `
+      <div class="bar a" style="left:${pct(am1)}%;width:${Math.max(4, pct(am2)-pct(am1))}%">A (${ad.slice(0,3)} ${as}-${ae}, W${aws}-${awe})</div>
+      <div class="bar b" style="left:${pct(bm1)}%;width:${Math.max(4, pct(bm2)-pct(bm1))}%">B (${bd.slice(0,3)} ${bs}-${be}, W${bws}-${bwe})</div>
+      ${ticks}`;
+
+    const mk = (ok, label) => `${ok ? '<span class="ok">✓ true</span>' : '<span class="bad">✗ false</span>'} — ${label}`;
+    $('clash-out').innerHTML = [
+      mk(sameDay,      `sameDay: <code>${ad} === ${bd}</code>`),
+      mk(timeOverlaps, `timeOverlaps: <code>"${as}" &lt; "${be}" &amp;&amp; "${bs}" &lt; "${ae}"</code>`),
+      mk(weeksOverlap, `weeksOverlap: <code>${aws} &lt;= ${bwe} &amp;&amp; ${bws} &lt;= ${awe}</code>`),
+      `<hr style="margin:8px 0"><b>ผลลัพธ์:</b> ${clash ? '<span class="bad">⚠️ 409 schedule-clash!</span> (ชนกัน — เปิด Clash Dialog)' : '<span class="ok">✅ ไม่ชน</span> (บันทึกได้ทันที)'}`
+    ].join('<br>');
+  }
+  ['ca-day','ca-s','ca-e','ca-ws','ca-we','cb-day','cb-s','cb-e','cb-ws','cb-we'].forEach(id => $(id).addEventListener('input', update));
+  document.querySelectorAll('[data-preset]').forEach(btn => btn.addEventListener('click', () => {
+    const p = presets[btn.dataset.preset];
+    $('ca-day').value = p.ad; $('ca-s').value = p.as; $('ca-e').value = p.ae; $('ca-ws').value = p.aws; $('ca-we').value = p.awe;
+    $('cb-day').value = p.bd; $('cb-s').value = p.bs; $('cb-e').value = p.be; $('cb-ws').value = p.bws; $('cb-we').value = p.bwe;
+    update();
+  }));
+  update();
+})();
+</script>
+</body>
+</html>

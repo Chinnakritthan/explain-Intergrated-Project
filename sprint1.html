@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprint 1 — Guest ดูตารางเรียน | ITB-CSV Explained</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+</head>
+<body data-page="sprint1">
+<div class="layout">
+  <aside class="toc"></aside>
+  <main>
+
+    <section class="hero">
+      <div class="kicker">SPRINT 1 · 3–9 NOVEMBER 2026</div>
+      <h1>Sprint 1 — Guest ดูตารางเรียนของหลักสูตร</h1>
+      <p class="lead"><b>Sprint Goal:</b> “A guest can view the BSc.IT class schedule, all of it or by year level.”<br>
+        Sprint แรกคือการวาง <b>โครงทั้ง 3 ชั้น</b> ให้ครบ: ตาราง DB แรก → API แรก → หน้าเว็บแรก</p>
+      <p><span class="badge fe">PBI1 VIEW-ALL-SCHEDULE</span> <span class="badge fe">PBI2 VIEW-SCHEDULE-BY-YEAR-LEVEL</span></p>
+    </section>
+
+    <h2 id="req">Requirement ที่ต้องทำ</h2>
+    <div class="grid c2">
+      <div class="pbi">
+        <div><span class="id">PBI1</span> · <span class="name">VIEW-ALL-SCHEDULE</span></div>
+        <ul class="small">
+          <li><b>PATH</b> <code>/intproj26/&lt;TEAM&gt;/</code></li>
+          <li><b>DISPLAY</b> ตาราง Code, Title, Type, Section, Group, Day, Time, Weeks, Remarks (ไม่มี Room เพราะเป็นหน้า public)</li>
+          <li><b>ORDER</b> Year level → course id → section → day (จันทร์ก่อน) → start time → schedule id</li>
+          <li><b>EMPTY</b> “There is currently no class schedule. Please check back later.”</li>
+          <li><b>ERROR</b> modal dialog “There is a problem. Please try again later.” ไม่มีปุ่ม</li>
+          <li><b>API</b> <code>GET /api/v1/schedules</code> · <code>GET /api/v1/health</code></li>
+        </ul>
+      </div>
+      <div class="pbi">
+        <div><span class="id">PBI2</span> · <span class="name">VIEW-SCHEDULE-BY-YEAR-LEVEL</span></div>
+        <ul class="small">
+          <li><b>DISPLAY</b> ปุ่ม All, Year 1 … Year 4 — ปุ่มที่เลือกมี <code>aria-pressed="true"</code></li>
+          <li><b>BEHAVIOUR</b> URL แสดงชั้นปีที่เลือก (<code>?yearLevel=2</code>) เปิด/รีโหลดแล้วยังคงค่าเดิม</li>
+          <li><b>ห้าม reload</b> และ <b>ห้ามขอข้อมูลที่มีอยู่แล้วซ้ำ</b> (TR-06)</li>
+          <li><b>API</b> <code>GET /api/v1/schedules?yearLevel=n</code> (n = 1–4)</li>
+          <li class="muted">Should-have (ไม่ได้ทดสอบ): ปุ่ม Back/Forward คืนค่าที่เลือกก่อนหน้า</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3 id="api-contract">API Contract — รูปร่าง JSON ที่ต้องตอบ “เป๊ะ”</h3>
+    <p>TR-08 บอกว่า response ต้องมี <b>field ตรงตามชีต API ไม่ขาดไม่เกิน</b> — นี่คือเหตุผลที่ backend ต้องมีไฟล์ <span class="file be">utils/schedule.formatter.js</span></p>
+    <script type="text/x-code" data-lang="json" data-path="GET /api/v1/schedules → 200">
+      [{
+        "id": 40,
+        "course": { "id": 34, "code": "INT504", "title": "Integrated Project", "type": "CORE", "yearLevel": 2 },
+        "section": 1,
+        "startWeek": 11, "endWeek": 15,
+        "dayOfWeek": "TUESDAY",
+        "startTime": "09:30", "endTime": "12:30",
+        "studentGroup": null,
+        "remarks": null
+      }]
+    </script>
+
+    <h2 id="file-flow">ไฟล์ที่เกี่ยวข้องกับ Sprint 1 และการเชื่อมโยง</h2>
+    <p>ลูกศร = “import / เรียกใช้” อ่านจากซ้ายไปขวาคือเส้นทางของข้อมูลตั้งแต่หน้าเว็บจนถึงฐานข้อมูล</p>
+    <pre class="mermaid">
+flowchart LR
+  subgraph FE["🎨 Frontend"]
+    IH["index.html"] --> MJ["main.js"]
+    MJ --> AP["api.js"]
+    MJ --> FL["components/filter.js"]
+    MJ --> TR["components/table-renderer.js"]
+    MJ --> MO["components/modal.js"]
+    TR --> FM["utils/formatters.js"]
+    TR --> MO
+  end
+  subgraph BE["⚙️ Backend"]
+    SV["server.js"] --> APP["app.js"]
+    APP --> HR["routes/health.routes.js"] --> HC["health.controller.js"]
+    APP --> SR["routes/schedule.routes.js"]
+    SR --> VA["middleware/validate.js"]
+    SR --> SFC["schedule-filter.controller.js"]
+    SFC --> SS["schedule.service.js"]
+    SFC --> SFS["schedule-filter.service.js"]
+    SS --> REPO["schedule.repository.js"]
+    SFS --> REPO
+    SS --> FMT["utils/schedule.formatter.js"]
+    SS --> SORT["utils/schedule.sorter.js"]
+    REPO --> PR["config/prisma.js"]
+  end
+  subgraph DB["🗄️ Database"]
+    T1[("courses")]
+    T2[("courses_schedule")]
+  end
+  AP -- "fetch ./api/v1/schedules" --> SR
+  PR --> T2
+  T2 -- "FK course_id" --> T1
+    </pre>
+
+    <!-- ================= DB ================= -->
+    <h2 id="db">🗄️ Database: ตาราง <code>courses</code> และ <code>courses_schedule</code></h2>
+    <p>ไฟล์ต้นทาง: <span class="file db">db_design/setdatabase.sql</span> (ออกแบบ), <span class="file db">database/init.sql</span> (สร้าง + seed จริงที่ Docker/CI ใช้), <span class="file db">db_design/data-dictionary.md</span> (อธิบาย field)</p>
+
+    <div class="grid c2">
+      <div class="card db">
+        <h4>courses (51 แถว)</h4>
+        <p class="small">วิชาที่เปิดในเทอม — <code>id</code> ใช้ตาม Test Data (BSc.IT ก่อน)<br>
+        <code>UNIQUE (code, title)</code> เพราะ <b>code อย่างเดียวไม่ unique</b> — INT403, INT521, INT540 มีหลายหัวข้อ</p>
+      </div>
+      <div class="card db">
+        <h4>courses_schedule (92 → 97 แถว)</h4>
+        <p class="small">คาบเรียนรายสัปดาห์ของแต่ละ section — 1 section มีได้หลายแถว (หลายวัน)<br>
+        <code>room</code> เก็บไว้แต่ <b>ไม่ส่งให้ guest</b></p>
+      </div>
+    </div>
+
+    <script type="text/x-code" data-lang="sql" data-path="database/init.sql" data-note="ตัดมาบางส่วน">
+      SET NAMES utf8mb4;                       -- ⭐ บอก MySQL ว่า "ไฟล์นี้ส่งมาเป็น UTF-8" (บทเรียนจาก snapshot)
+
+      DROP DATABASE IF EXISTS zap_setdb;
+      CREATE DATABASE IF NOT EXISTS zap_setdb
+      CHARACTER SET utf8mb4
+      COLLATE utf8mb4_unicode_ci;               -- TR-03: UTF-8 ทุกชั้น รวมถึง DB
+
+      CREATE TABLE courses (
+          id INT PRIMARY KEY,                  -- ไม่ใช้ AUTO_INCREMENT เพราะต้องใช้ id ตาม Test Data (TR-07)
+          code VARCHAR(6) NOT NULL,
+          title VARCHAR(100) NOT NULL,
+          type ENUM('CORE', 'ELECTIVE') NOT NULL,
+          year_level INT NOT NULL,
+          CONSTRAINT unique_course UNIQUE (code, title),
+          CONSTRAINT check_year_level CHECK (year_level BETWEEN 1 AND 4)
+      );
+
+      CREATE TABLE courses_schedule (
+          id INT PRIMARY KEY,
+          course_id INT NOT NULL,
+          section INT NOT NULL,
+          start_week INT NOT NULL,
+          end_week INT NOT NULL,
+          day_of_week ENUM('MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY') NOT NULL,
+          start_time TIME NOT NULL,
+          end_time TIME NOT NULL,
+          room VARCHAR(20),
+          student_group ENUM('A', 'B'),        -- NULL = ไม่แบ่งกลุ่ม
+          remarks VARCHAR(255),
+          CONSTRAINT fk_schedule_course FOREIGN KEY (course_id) REFERENCES courses(id),
+          CONSTRAINT check_section    CHECK (section BETWEEN 1 AND 99),
+          CONSTRAINT check_week_range CHECK (start_week <= end_week),
+          CONSTRAINT check_time_range CHECK (start_time < end_time)
+      );
+    </script>
+
+    <div class="callout warn"><span class="t">⚠️ บทเรียนจาก Sprint 1 snapshot: UTF-8 “ขาเข้า”</span>
+      หลายทีมได้ <code>Jul 26â€“Aug 23</code> แทน <code>Jul 26–Aug 23</code> เพราะไบต์ UTF-8 ถูกอ่านเป็น Latin-1 ระหว่างรัน seed
+      — ต้องตั้ง <b>character set ของ connection</b> ตอน import (เช่น <code>SET NAMES utf8mb4;</code> หรือ <code>mysql --default-character-set=utf8mb4</code>) ไม่ใช่แค่ของตาราง</div>
+
+    <h3 id="prisma-model">Prisma model — แผนที่จากตาราง SQL ไปเป็น object ใน JS</h3>
+    <p><span class="file db">backend/prisma/schema.prisma</span> บอก Prisma ว่าตารางหน้าตาอย่างไร ชื่อ snake_case ในฐานข้อมูลถูก map เป็น camelCase ด้วย <code>@map</code></p>
+    <script type="text/x-code" data-lang="prisma" data-path="backend/prisma/schema.prisma">
+      model Course {
+        id         Int              @id
+        code       String           @db.VarChar(6)
+        title      String           @db.VarChar(100)
+        type       CourseType
+        yearLevel  Int              @map("year_level")     // year_level → yearLevel
+        schedules  CourseSchedule[]                        // 1 วิชา มีหลายคาบ
+        @@unique([code, title], map: "unique_course")
+        @@map("courses")
+      }
+
+      model CourseSchedule {
+        id           Int           @id
+        courseId     Int           @map("course_id")
+        section      Int
+        startWeek    Int           @map("start_week")
+        endWeek      Int           @map("end_week")
+        dayOfWeek    DayOfWeek     @map("day_of_week")
+        startTime    DateTime      @map("start_time") @db.Time(0)   // ⚠️ TIME → JS Date (1970-01-01T09:30:00Z)
+        endTime      DateTime      @map("end_time") @db.Time(0)
+        room         String?       @db.VarChar(20)
+        studentGroup StudentGroup? @map("student_group")
+        remarks      String?       @db.VarChar(255)
+        course       Course        @relation(fields: [courseId], references: [id])
+        @@map("courses_schedule")
+      }
+    </script>
+
+    <p class="alt-title">ทางเลือกอื่น: เก็บ “วัน” แบบไหนดี?</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: ENUM">
+        <p>ใช้ <code>ENUM('MONDAY',…,'SUNDAY')</code> — MySQL เก็บ ENUM เป็นเลขลำดับภายใน ทำให้ <code>ORDER BY day_of_week</code> เรียง <b>จันทร์ → อาทิตย์</b> ได้ทันที</p>
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>อ่านง่าย ค่าผิดใส่ไม่ได้</li><li>Prisma สร้าง enum ให้ใน JS</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>เพิ่มค่าใหม่ต้อง ALTER TABLE</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: TINYINT 1–7">
+        <script type="text/x-code" data-lang="sql">
+          day_of_week TINYINT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7)  -- 1 = Monday
+        </script>
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>เรียงลำดับ/คำนวณง่าย</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ต้องแปลงเป็น "TUESDAY" เองก่อนส่ง API</li><li>อ่านข้อมูลดิบแล้วไม่รู้ความหมาย</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก B: Lookup table">
+        <script type="text/x-code" data-lang="sql">
+          CREATE TABLE days (id TINYINT PRIMARY KEY, name VARCHAR(10) UNIQUE);
+          -- courses_schedule.day_id → FK days(id)
+        </script>
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>Normalize เต็มรูปแบบ แก้ชื่อที่เดียว</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ต้อง JOIN เพิ่ม — เกินความจำเป็นสำหรับ 7 ค่าที่ไม่เปลี่ยน</li></ul></div></div>
+      </div>
+    </div>
+
+    <!-- ================= BACKEND ================= -->
+    <h2 id="be">⚙️ Backend: จาก server.js ถึง JSON</h2>
+
+    <h3 id="be-entry">1) จุดเริ่มต้น — <code>server.js</code> และ <code>app.js</code></h3>
+    <p>แยก 2 ไฟล์เพื่อให้ <code>app</code> (ตัว Express) import ไปทดสอบได้โดยไม่ต้องเปิด port</p>
+    <script type="text/x-code" data-path="backend/src/server.js">
+      // ต้องโหลด .env เป็นบรรทัดแรก ก่อน import ไฟล์อื่นที่อ่าน process.env
+      import 'dotenv/config';
+      import app from './app.js';
+
+      const PORT = process.env.PORT || 3000;
+      app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    </script>
+    <script type="text/x-code" data-path="backend/src/app.js" data-note="สถานะตอนจบ Sprint 3">
+      import express from 'express';
+      import cors from 'cors';
+      import healthRoutes from './routes/health.routes.js';
+      import scheduleRoutes from './routes/schedule.routes.js';
+      // ... student / year-level / lecturer / academic routes (Sprint 2–3)
+      import { errorHandler } from './middleware/errorHandler.js';
+
+      const app = express();
+      app.use(cors());
+
+      // บังคับ Response Header UTF-8
+      app.use((req, res, next) => {
+        res.setHeader('Content-Type', 'application/json; charset=utf-8');
+        next();
+      });
+
+      app.use('/api/v1/health', healthRoutes);
+      app.use('/api/v1/schedules', scheduleRoutes);
+      // app.use('/api/v1/students', ...)  ← เพิ่มใน Sprint 2
+      app.use(errorHandler);   // ⭐ ต้องอยู่ "ท้ายสุด" เพื่อรับ error ที่ทุก route ส่ง next(err)
+
+      export default app;
+    </script>
+    <div class="callout note"><span class="t">ทำไม import ด้วย <code>.js</code> และใช้ <code>import</code> แทน <code>require</code>?</span>
+      เพราะ <span class="file be">package.json</span> ตั้ง <code>"type": "module"</code> → Node ใช้ ES Modules ซึ่งต้องเขียนนามสกุลไฟล์เต็ม</div>
+
+    <h3 id="be-health">2) Health check</h3>
+    <script type="text/x-code" data-path="backend/src/controllers/health.controller.js">
+      export const getHealthStatus = (req, res) => {
+        const teamCode = process.env.TEAM_CODE || 'ip26-zap';
+        res.status(200).json({ status: 'ok', team: teamCode });
+      };
+    </script>
+    <p class="small muted">ใช้ให้ระบบทดสอบของวิชาเช็คว่า backend “ยังหายใจอยู่” และเป็นของทีมไหน</p>
+
+    <h3 id="be-route">3) Route → Controller → Service → Repository</h3>
+    <p>นี่คือหัวใจของ <a href="backend.html">Layered Architecture</a> ที่ทีมใช้ทั้งโปรเจกต์ แต่ละชั้นมีหน้าที่เดียว:</p>
+    <div class="flow">
+      <div class="node be"><b>routes/</b>URL นี้ → middleware ไหน → controller ไหน</div><span class="arrow">→</span>
+      <div class="node be"><b>controllers/</b>อ่าน req, ส่ง res, ส่ง error ให้ next()</div><span class="arrow">→</span>
+      <div class="node be"><b>services/</b>logic: format + sort</div><span class="arrow">→</span>
+      <div class="node db"><b>repositories/</b>query DB ผ่าน Prisma</div>
+    </div>
+
+    <script type="text/x-code" data-path="backend/src/routes/schedule.routes.js">
+      import express from 'express';
+      import * as scheduleFilterController from '../controllers/schedule-filter.controller.js';
+      import { validateSchedulesQuery } from '../middleware/validate.js';
+
+      const router = express.Router();
+      router.get('/', validateSchedulesQuery, scheduleFilterController.getSchedules);
+      export default router;
+    </script>
+    <script type="text/x-code" data-path="backend/src/controllers/schedule-filter.controller.js">
+      import * as scheduleService from '../services/schedule.service.js';
+      import * as scheduleFilterService from '../services/schedule-filter.service.js';
+
+      export async function getSchedules(req, res, next) {
+        try {
+          let schedules;
+          if (req.validatedYearLevel === undefined) {
+            schedules = await scheduleService.getAllSchedules();            // PBI 1
+          } else {
+            schedules = await scheduleFilterService.getSchedulesByYearLevel( // PBI 2
+              req.validatedYearLevel
+            );
+          }
+          res.status(200).json(schedules);
+        } catch (err) {
+          next(err);   // ส่งต่อให้ errorHandler กลาง
+        }
+      }
+    </script>
+    <div class="callout tip"><span class="t">🔎 สังเกต</span>
+      <span class="file be">controllers/schedule.controller.js</span> ยังอยู่ในโปรเจกต์ แต่ <b>ไม่มีไฟล์ไหน import แล้ว</b> — เป็นของ PBI1 เวอร์ชันแรก
+      ก่อนถูกแทนด้วย <code>schedule-filter.controller.js</code> ที่รวม PBI1+2 ไว้ด้วยกัน (ลบทิ้งได้)</div>
+
+    <script type="text/x-code" data-path="backend/src/services/schedule.service.js + schedule-filter.service.js">
+      // schedule.service.js — PBI 1
+      export async function getAllSchedules() {
+        const rawRows = await scheduleRepo.findAll();
+        const formattedRows = rawRows.map(scheduleFormatter.formatSchedule);
+        return sortSchedules(formattedRows);
+      }
+
+      // schedule-filter.service.js — PBI 2 (โครงเดียวกัน ต่างกันแค่ query)
+      export async function getSchedulesByYearLevel(yearLevel) {
+        const rawRows = await scheduleRepo.findByYearLevel(yearLevel);
+        return sortSchedules(rawRows.map(scheduleFormatter.formatSchedule));
+      }
+    </script>
+    <script type="text/x-code" data-path="backend/src/repositories/schedule.repository.js">
+      import prisma from '../config/prisma.js';
+
+      export async function findAll() {
+        // ดึงตารางเรียนทั้งหมดพร้อม JOIN ข้อมูลวิชา (course) ในคำสั่งเดียว
+        return await prisma.courseSchedule.findMany({ include: { course: true } });
+      }
+
+      export async function findByYearLevel(yearLevel) {
+        return await prisma.courseSchedule.findMany({
+          where: { course: { is: { yearLevel } } },   // filter ผ่าน relation
+          include: { course: true }
+        });
+      }
+    </script>
+
+    <h3 id="be-format">4) Formatter — ทำให้ตรง API contract</h3>
+    <script type="text/x-code" data-path="backend/src/utils/schedule.formatter.js">
+      // จัดรูปแบบเวลาเป็น "HH:MM" แบบ 24 ชั่วโมง
+      export function formatTime(time) {
+        if (!time) return null;
+        if (typeof time === 'string') return time.substring(0, 5);
+        if (time instanceof Date) {
+          // Prisma คืน TIME เป็น Date ของวันที่ 1970-01-01 ใน UTC → ต้องใช้ getUTC* ไม่งั้นเพี้ยนตาม timezone เครื่อง
+          const hours = String(time.getUTCHours()).padStart(2, '0');
+          const minutes = String(time.getUTCMinutes()).padStart(2, '0');
+          return `${hours}:${minutes}`;
+        }
+        return String(time).substring(0, 5);
+      }
+
+      // แปลงข้อมูล 1 แถวให้ตรงตาม API Contract (ตัด room และ courseId ออก)
+      export function formatSchedule(item) {
+        return {
+          id: item.id,
+          course: {
+            id: item.course.id, code: item.course.code, title: item.course.title,
+            type: item.course.type, yearLevel: item.course.yearLevel
+          },
+          section: item.section,
+          startWeek: item.startWeek,
+          endWeek: item.endWeek,
+          dayOfWeek: item.dayOfWeek,
+          startTime: formatTime(item.startTime),
+          endTime: formatTime(item.endTime),
+          studentGroup: item.studentGroup || null,
+          remarks: item.remarks || null
+        };
+      }
+    </script>
+    <div class="callout warn"><span class="t">⚠️ จุดที่พลาดง่าย: “09:30 บนเครื่องเรา แต่ 02:30 บน server”</span>
+      ถ้าใช้ <code>getHours()</code> จะได้เวลาตาม timezone ของเครื่อง (ไทย +7) — ทีมใช้ <code>getUTCHours()</code> จึงได้ค่าเดียวกันทุกเครื่อง</div>
+
+    <p class="alt-title">ทางเลือกอื่น: แปลงเวลาที่ไหนดี?</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: แปลงใน JS">
+        <p>Prisma อ่าน TIME มาเป็น <code>Date</code> แล้ว <code>formatTime()</code> แปลงเป็น string — ใช้ซ้ำได้ทั้ง schedules, sessions, clashes</p>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: TIME_FORMAT ใน SQL">
+        <script type="text/x-code" data-lang="javascript">
+          const rows = await prisma.$queryRaw`
+            SELECT cs.id, TIME_FORMAT(cs.start_time, '%H:%i') AS startTime,
+                   TIME_FORMAT(cs.end_time,   '%H:%i') AS endTime, ...
+            FROM courses_schedule cs JOIN courses c ON c.id = cs.course_id`;
+        </script>
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>ไม่มีปัญหา timezone เลย</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ต้องเขียน SQL เอง เสียความ type-safe ของ Prisma</li><li>ต้องประกอบ object <code>course</code> ซ้อนเอง</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก B: toISOString().slice">
+        <script type="text/x-code" data-lang="javascript">
+          const formatTime = (d) => d.toISOString().slice(11, 16);   // "1970-01-01T09:30:00.000Z" → "09:30"
+        </script>
+        <p class="small">สั้นกว่า และเป็น UTC เสมอเหมือนกัน</p>
+      </div>
+    </div>
+
+    <h3 id="be-sort">5) Sorter — เรียงลำดับ 6 ขั้นตาม PBI1</h3>
+    <p>“Neither id order nor code order is the PBI1 order.” — ต้องเรียง <b>Year level → course id → section → day (Mon first) → start time → schedule id</b></p>
+    <script type="text/x-code" data-path="backend/src/utils/schedule.sorter.js">
+      const DAY_ORDER = { MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6, SUNDAY: 7 };
+
+      export function sortSchedules(rows) {
+        return [...rows].sort((a, b) => {            // [...rows] = copy ก่อน ไม่แก้ array เดิม
+          if (a.course.yearLevel !== b.course.yearLevel) return a.course.yearLevel - b.course.yearLevel;
+          if (a.course.id !== b.course.id)               return a.course.id - b.course.id;
+          if (a.section !== b.section)                   return a.section - b.section;
+          if (a.dayOfWeek !== b.dayOfWeek)               return DAY_ORDER[a.dayOfWeek] - DAY_ORDER[b.dayOfWeek];
+          if (a.startTime !== b.startTime)               return a.startTime.localeCompare(b.startTime); // "09:30" < "13:30"
+          return a.id - b.id;
+        });
+      }
+    </script>
+
+    <p class="alt-title">ทางเลือกอื่น: ให้ฐานข้อมูลเรียงให้</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: sort ใน JS">
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>ใช้ซ้ำกับข้อมูลที่ไม่ได้มาจาก query เดียว (เช่น lecturer schedules)</li><li>ทดสอบเป็น unit ได้ง่าย</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ต้องดึงทุกแถวมาก่อน (ไม่มีปัญหาที่ ~100 แถว)</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: Prisma orderBy">
+        <script type="text/x-code" data-lang="javascript">
+          // MySQL เรียง ENUM ตามลำดับที่ประกาศ → MONDAY มาก่อน TUESDAY อยู่แล้ว
+          return prisma.courseSchedule.findMany({
+            include: { course: true },
+            orderBy: [
+              { course: { yearLevel: 'asc' } },
+              { courseId: 'asc' },
+              { section: 'asc' },
+              { dayOfWeek: 'asc' },
+              { startTime: 'asc' },
+              { id: 'asc' }
+            ]
+          });
+        </script>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก B: SQL ล้วน">
+        <script type="text/x-code" data-lang="sql">
+          SELECT cs.*, c.code, c.title, c.type, c.year_level
+          FROM courses_schedule cs
+          JOIN courses c ON c.id = cs.course_id
+          ORDER BY c.year_level, c.id, cs.section,
+                   FIELD(cs.day_of_week,'MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'),
+                   cs.start_time, cs.id;
+        </script>
+        <p class="small"><code>FIELD()</code> ใช้ได้แม้คอลัมน์จะเป็น VARCHAR ไม่ใช่ ENUM</p>
+      </div>
+    </div>
+
+    <h3 id="be-validate">6) Validate query <code>?yearLevel</code></h3>
+    <p>ตอน Sprint 1 ทีมมีตัวตรวจง่าย ๆ ต่อมา Sprint 3 (PBI9) ยกระดับเป็น <span class="file be">middleware/validate.js</span> ที่ตอบ 400 แบบ RFC 9457</p>
+    <script type="text/x-code" data-path="backend/src/middleware/validate.js" data-note="ฟังก์ชันที่ Sprint 1 ใช้">
+      function isValidYearLevel(value) {
+        return typeof value === 'string' && ['1', '2', '3', '4'].includes(value);   // "2" ผ่าน, "2.0" / "abc" / "5" ไม่ผ่าน
+      }
+
+      export function validateSchedulesQuery(req, res, next) {
+        const { yearLevel } = req.query;
+        if (yearLevel === undefined) return next();          // ไม่มี = PBI1 (All)
+        const errors = [];
+        if (!isValidYearLevel(yearLevel)) {
+          errors.push({ field: 'yearLevel', detail: 'must be an integer from 1 to 4' });
+        } else {
+          req.validatedYearLevel = Number(yearLevel);        // ⭐ แนบค่าที่ตรวจแล้วไว้กับ req ให้ controller ใช้
+        }
+        return throwIfErrors(errors, next);
+      }
+    </script>
+
+    <!-- ================= FRONTEND ================= -->
+    <h2 id="fe">🎨 Frontend: หน้า <code>index.html</code></h2>
+
+    <h3 id="fe-html">1) HTML — ใช้ element ให้ตรง “role” ที่ test หา</h3>
+    <p>UI Contract บอกว่า Playwright หา element แบบที่ผู้ใช้เห็น: heading, button, table, dialog — <b>“A clickable &lt;div&gt; is not a button”</b></p>
+    <script type="text/x-code" data-lang="html" data-path="frontend/index.html" data-note="ตัดมาบางส่วน">
+      <h1>Class Schedule</h1>
+      <a href="./my-schedule.html">My Schedule</a>                      <!-- เพิ่มใน Sprint 2 (PBI3) -->
+
+      <nav aria-label="Filter Schedule By year level" class="filter-bar">
+          <button type="button" data-year="all" aria-pressed="true">All</button>
+          <button type="button" data-year="1" aria-pressed="false">Year 1</button>
+          <!-- ... Year 2, 3, 4 -->
+      </nav>
+
+      <div id="empty-message" data-testid="empty-message" style="display: none;">
+          There is currently no class schedule. Please check back later.
+      </div>
+
+      <table data-testid="schedule-table">
+          <thead><tr><th scope="col">Code</th> ... <th scope="col">Remarks</th></tr></thead>
+          <tbody id="schedule-tbody"></tbody>                            <!-- JS เติมแถวที่นี่ -->
+      </table>
+
+      <dialog id="error-dialog" closedby="none"><p>There is a problem. Please try again later.</p></dialog>
+
+      <script src="./js/main.js" type="module"><\/script>
+    </script>
+    <div class="grid c3">
+      <div class="card"><h4><code>data-testid</code></h4><p class="small">ชื่อที่ test ใช้หา element โดยไม่ผูกกับ class/CSS — เปลี่ยนหน้าตาได้อิสระ</p></div>
+      <div class="card"><h4><code>aria-pressed</code></h4><p class="small">บอก screen reader (และ test) ว่าปุ่ม toggle ไหน “ถูกกดอยู่”</p></div>
+      <div class="card"><h4><code>closedby="none"</code></h4><p class="small">dialog ปิดด้วย Esc หรือคลิกข้างนอกไม่ได้ (Release 1.1.0) — ต้อง refresh เพื่อลองใหม่</p></div>
+    </div>
+
+    <h3 id="fe-main">2) main.js — ตัวประสานงาน (entry point)</h3>
+    <script type="text/x-code" data-path="frontend/js/main.js">
+      import { fetchSchedules } from "./api.js";
+      import { renderTable } from './components/table-renderer.js';
+      import { showErrorModal } from './components/modal.js';
+      import { initFilter } from './components/filter.js';
+
+      async function loadSchedules(yearLevel = null) {
+        try {
+          const schedules = await fetchSchedules(yearLevel);   // 1. ขอข้อมูล
+          renderTable(schedules);                              // 2. วาดตาราง
+        } catch (error) {
+          showErrorModal();                                    // 3. พังเมื่อไหร่ → dialog
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        const initialYear = initFilter((selectedYear) => loadSchedules(selectedYear));
+        loadSchedules(initialYear);   // เปิดหน้ามาพร้อม ?yearLevel=2 ก็โหลด Year 2 เลย
+      });
+    </script>
+
+    <h3 id="fe-api">3) api.js — fetch + cache (ไม่ขอข้อมูลซ้ำ)</h3>
+    <script type="text/x-code" data-path="frontend/js/api.js">
+      const isLocalDev = window.location.port === '5500' || window.location.port === '5173';
+      const API_URL = isLocalDev ? 'http://localhost:3000/api/v1/schedules' : './api/v1/schedules';
+      let allSchedulesCache = null;
+      const yearCache = {};
+
+      export async function fetchSchedules(yearLevel = null) {
+        if (allSchedulesCache !== null) {                       // มี "All" แล้ว → กรองเอง ไม่ต้องยิง
+          if (yearLevel) return allSchedulesCache.filter(item => item.course.yearLevel === Number(yearLevel));
+          return allSchedulesCache;
+        }
+        if (yearLevel && yearCache[yearLevel]) return yearCache[yearLevel];   // เคยโหลดปีนี้แล้ว
+
+        const url = yearLevel ? `${API_URL}?yearLevel=${yearLevel}` : API_URL;
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("API Error: Status" + response.status);   // status ≠ 200 → error dialog
+        const data = await response.json();
+
+        if (yearLevel) yearCache[yearLevel] = data; else allSchedulesCache = data;
+        return data;
+      }
+    </script>
+    <div class="callout note"><span class="t">ทำไม URL เป็น <code>./api/v1/...</code> (relative)?</span>
+      เพราะเว็บจริงอยู่ใต้ path <code>/intproj26/&lt;TEAM-PATH&gt;/</code> — ถ้าเขียน <code>/api/v1</code> (ขึ้นต้นด้วย /) จะวิ่งไปที่ root ของโดเมนผิดที่
+      ส่วนตอนพัฒนาบนเครื่อง (port 5173/5500) frontend กับ backend อยู่คนละ port จึงชี้ไป <code>http://localhost:3000</code> ตรง ๆ (และต้องเปิด <code>cors()</code> ที่ backend)</div>
+
+    <p class="alt-title">ทางเลือกอื่น: กลยุทธ์ cache</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: cache ตามที่ขอ">
+        <p>ขอเฉพาะที่ต้องใช้ → ถ้าเปิด <code>?yearLevel=2</code> ก็ยิง <code>?yearLevel=2</code> อย่างเดียว ข้อมูลที่ได้มาเก็บไว้ใช้ซ้ำ</p>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: โหลด All ครั้งเดียวแล้วกรองเอง">
+        <script type="text/x-code">
+          let cache = null;
+          export async function fetchSchedules(yearLevel) {
+            cache ??= await (await fetch(API_URL)).json();          // ยิงครั้งเดียวตลอดอายุหน้า
+            return yearLevel ? cache.filter(s => s.course.yearLevel === Number(yearLevel)) : cache;
+          }
+        </script>
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>โค้ดสั้นมาก</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ไม่ได้ใช้ <code>?yearLevel</code> ของ API เลย — test บางข้ออาจคาดหวังให้หน้า Year n เรียก <code>?yearLevel=n</code></li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก B: Map ของ Promise">
+        <script type="text/x-code">
+          const inflight = new Map();   // key → Promise (กันกดรัว ๆ แล้วยิงซ้ำระหว่างรอ)
+          export function fetchSchedules(year = 'all') {
+            if (!inflight.has(year)) {
+              const url = year === 'all' ? API_URL : `${API_URL}?yearLevel=${year}`;
+              inflight.set(year, fetch(url).then(r => { if (!r.ok) throw r; return r.json(); }));
+            }
+            return inflight.get(year);
+          }
+        </script>
+        <p class="small">เก็บ <b>Promise</b> แทนผลลัพธ์ → ถ้ากดปุ่มเดิมซ้ำตอนที่ request แรกยังไม่กลับมา ก็ไม่ยิงซ้ำ</p>
+      </div>
+    </div>
+
+    <h3 id="fe-filter">4) filter.js — ปุ่มชั้นปี + URL</h3>
+    <script type="text/x-code" data-path="frontend/js/components/filter.js">
+      export function getYearFromUrl() {
+        const url = new URL(window.location.href);
+        const year = url.searchParams.getAll('yearLevel');
+        if (year.length === 1 && ['1', '2', '3', '4'].includes(year[0])) return year[0];
+        if (url.searchParams.has('yearLevel')) {           // PBI9: ค่าผิด เช่น ?yearLevel=7 → ลบออกจาก URL
+          url.searchParams.delete('yearLevel');
+          window.history.replaceState(null, '', url.pathname + url.search);   // replace = ไม่เพิ่ม history
+        }
+        return null;
+      }
+
+      export function updateUrl(selectedYear) {
+        const url = new URL(window.location.href);
+        if (selectedYear && selectedYear !== 'all') url.searchParams.set('yearLevel', selectedYear);
+        else url.searchParams.delete('yearLevel');
+        window.history.pushState(null, '', url.pathname + url.search);       // push = เปลี่ยน URL ไม่ reload
+      }
+
+      export function initFilter(onSelectYear) {
+        const initialYear = getYearFromUrl();
+        updateFilterButtons(initialYear);
+        document.querySelectorAll('.filter-bar button').forEach((element) => {
+          element.addEventListener('click', () => {
+            const yearAttr = element.getAttribute('data-year');
+            const selectedYear = yearAttr === 'all' ? null : yearAttr;
+            updateFilterButtons(selectedYear);   // aria-pressed
+            updateUrl(selectedYear);             // ?yearLevel=
+            onSelectYear?.(selectedYear);        // โหลดข้อมูล
+          });
+        });
+        return initialYear;
+      }
+    </script>
+
+    <p class="alt-title">ทางเลือกอื่น / ต่อยอด: ปุ่ม Back & Forward (Should-have)</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="ต่อยอด: ฟัง popstate">
+        <p>ตอนนี้ <code>index.html</code> ยังไม่ฟัง <code>popstate</code> — กด Back แล้ว URL เปลี่ยนแต่ตารางไม่เปลี่ยน เพิ่มแค่นี้ใน <span class="file fe">main.js</span>:</p>
+        <script type="text/x-code">
+          window.addEventListener('popstate', () => {
+            const year = getYearFromUrl();     // อ่านค่าจาก URL ใหม่
+            updateFilterButtons(year);
+            loadSchedules(year);               // ได้จาก cache → ไม่ยิง request ใหม่
+          });
+        </script>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก: Hash routing">
+        <script type="text/x-code">
+          // URL แบบ /#year=2 — เปลี่ยน location.hash แล้ว browser จัดการ history ให้เอง
+          window.addEventListener('hashchange', () => loadSchedules(new URLSearchParams(location.hash.slice(1)).get('year')));
+        </script>
+        <p class="small bad">ใช้ไม่ได้ในวิชานี้ — requirement กำหนดให้เป็น <code>?yearLevel=n</code></p>
+      </div>
+    </div>
+
+    <h3 id="fe-render">5) table-renderer.js — สร้างแถวด้วย DOM API</h3>
+    <script type="text/x-code" data-path="frontend/js/components/table-renderer.js" data-note="ย่อ">
+      export function renderTable(schedule) {
+        const tbody = document.getElementById('schedule-tbody');
+        tbody.innerHTML = '';                                // ล้างแถวเก่า
+        if (!schedule || schedule.length === 0) { EmptyMessage(true); return; }
+        EmptyMessage(false);
+
+        for (const item of schedule) {
+          const tr = document.createElement('tr');
+          tr.setAttribute('data-testid', 'schedule-row');
+          const tdCode = document.createElement('td');
+          tdCode.setAttribute('data-testid', 'code');
+          tdCode.textContent = item.course.code;             // ⭐ textContent = ปลอดภัยจาก XSS
+          tr.appendChild(tdCode);
+          // ... title, type, section, group, day, time, weeks, remarks (แบบเดียวกัน)
+          tbody.appendChild(tr);
+        }
+      }
+    </script>
+
+    <p class="alt-title">ทางเลือกอื่น: วิธีสร้างแถวตาราง</p>
+    <div class="tabs">
+      <div class="tab-panel" data-label="✅ ปัจจุบัน: createElement ทีละ td">
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>ปลอดภัย (textContent)</li><li>ชัดเจนทุกบรรทัด</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ยาวและซ้ำ ~9 บล็อก × 3 ไฟล์</li></ul></div></div>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก A: ตาราง config + loop">
+        <script type="text/x-code">
+          const COLUMNS = [
+            ['code',    s => s.course.code],
+            ['title',   s => s.course.title],
+            ['type',    s => s.course.type],
+            ['section', s => s.section],
+            ['group',   s => s.studentGroup ?? ''],
+            ['day',     s => formatDay(s.dayOfWeek)],
+            ['time',    s => formatTime(s.startTime, s.endTime)],
+            ['weeks',   s => formatWeeks(s.startWeek, s.endWeek)],
+            ['remarks', s => s.remarks ?? ''],
+          ];
+          function createRow(item, columns = COLUMNS) {
+            const tr = document.createElement('tr');
+            tr.dataset.testid = 'schedule-row';
+            for (const [id, get] of columns) {
+              const td = tr.insertCell();
+              td.dataset.testid = id;
+              td.textContent = get(item);
+            }
+            return tr;
+          }
+        </script>
+        <p class="small">ตารางของ My Schedule แค่ใช้ <code>COLUMNS</code> อีกชุด (เพิ่ม room, instructor) — ลดโค้ดซ้ำใน 3 renderer ได้มาก</p>
+      </div>
+      <div class="tab-panel" data-label="ทางเลือก B: <template>">
+        <script type="text/x-code" data-lang="html">
+          <template id="row-tpl">
+            <tr data-testid="schedule-row"><td data-testid="code"></td><td data-testid="title"></td>...</tr>
+          </template>
+        </script>
+        <script type="text/x-code">
+          const tpl = document.getElementById('row-tpl');
+          const tr = tpl.content.firstElementChild.cloneNode(true);
+          tr.querySelector('[data-testid=code]').textContent = item.course.code;
+        </script>
+      </div>
+      <div class="tab-panel" data-label="⚠️ ทางเลือก C: innerHTML template string">
+        <script type="text/x-code">
+          tbody.innerHTML = schedule.map(s => `
+            <tr data-testid="schedule-row"><td data-testid="code">${s.course.code}</td>...</tr>`).join('');
+        </script>
+        <div class="pc"><div class="pro"><b>ข้อดี</b><ul><li>สั้นที่สุด เร็ว</li></ul></div><div class="con"><b>ข้อเสีย</b><ul><li>ถ้าข้อมูลมี <code>&lt;script&gt;</code> หรือ <code>&lt;img onerror&gt;</code> จะกลายเป็น XSS — ต้อง escape เอง</li></ul></div></div>
+      </div>
+    </div>
+
+    <h3 id="fe-modal">6) modal.js + formatters.js</h3>
+    <script type="text/x-code" data-path="frontend/js/components/modal.js" data-note="ส่วนของ Sprint 1">
+      export function showErrorModal() {
+        const errorDialog = document.getElementById('error-dialog');
+        if (!errorDialog) return;
+        // กัน Esc ปิด dialog (Release 1.1.0) — closedby="none" ยังไม่รองรับทุก browser จึงกันซ้ำด้วย JS
+        errorDialog.addEventListener('cancel', (e) => e.preventDefault());
+        if (!errorDialog.open) errorDialog.showModal();   // showModal() = modal จริง (มี backdrop, โฟกัสถูกขัง)
+      }
+    </script>
+    <script type="text/x-code" data-path="frontend/js/utils/formatters.js">
+      export function formatDay(day) {            // "TUESDAY" → "Tuesday"
+        if (!day) return '';
+        const lower = day.toLowerCase();
+        return lower.charAt(0).toUpperCase() + lower.slice(1);
+      }
+      export function formatTime(startTime, endTime) {   // "09:30","12:30" → "09:30-12:30"
+        if (!startTime || !endTime) return '';
+        return startTime + "-" + endTime;
+      }
+      export function formatWeeks(startWeek, endWeek) {  // 11, 15 → "11-15"
+        if (!startWeek || !endWeek) return '';
+        return startWeek + "-" + endWeek;
+      }
+    </script>
+    <p class="small muted">ทางเลือก: <code>formatDay</code> ใช้ object map <code>{ MONDAY: 'Monday', ... }</code> ก็ได้ — หรือ CSS <code>text-transform: capitalize</code> (แต่ test อ่าน text จริงใน DOM จึงต้องแปลงใน JS)</p>
+
+    <h2 id="lessons">สรุปบทเรียน Sprint 1</h2>
+    <div class="grid c3">
+      <div class="card"><h4>⏰ Time is “HH:MM”</h4><p class="small">09:30 ใน DB ต้องเป็น "09:30" ใน API ทั้งบนเครื่องเราและบน server</p></div>
+      <div class="card"><h4>📦 Exact fields</h4><p class="small">ห้ามมี field เกิน (เช่น room, courseId) และ course ต้องเป็น object ซ้อน</p></div>
+      <div class="card"><h4>↕️ The order</h4><p class="small">ไม่ใช่ id order และไม่ใช่ code order — 6 ขั้นตาม PBI1</p></div>
+      <div class="card"><h4>🔤 UTF-8 everywhere</h4><p class="small">“Classes: Jul 26–Aug 23” ต้องมาครบไม่เพี้ยน</p></div>
+      <div class="card"><h4>🔁 No reload, no refetch</h4><p class="small">เลือกปีแล้ว URL เปลี่ยนแต่หน้าไม่โหลดใหม่ ข้อมูลที่มีแล้วเก็บไว้</p></div>
+      <div class="card"><h4>🧯 Empty & error</h4><p class="small">ถูกทดสอบบนเว็บจริงด้วยการแทนคำตอบ backend ใน browser</p></div>
+    </div>
+
+    <h3 id="tests">รัน Acceptance Test (Playwright)</h3>
+    <script type="text/x-code" data-lang="bash" data-path="int504-2026-itb-csv-requirements/tests">
+      # ครั้งแรก
+      cd int504-2026-itb-csv-requirements/tests && npm ci && npx playwright install chromium
+
+      # ระหว่างพัฒนา
+      BASE_URL=http://localhost:3000/ npx playwright test --project=api   # ทดสอบ backend อย่างเดียว
+      BASE_URL=http://localhost:5173/ npx playwright test --project=ui    # ทดสอบหน้าเว็บ (API ถูก mock)
+
+      # ก่อน deadline — e2e บนเว็บจริง
+      BASE_URL=https://bscit.sit.kmutt.ac.th/intproj26/<TEAM-PATH>/ TEAM=<TEAM-CODE> npx playwright test
+    </script>
+
+  </main>
+</div>
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>

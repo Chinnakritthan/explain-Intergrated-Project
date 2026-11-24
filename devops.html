@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deployment, Docker & CI/CD | ITB-CSV Explained</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github-dark.min.css">
+  <link rel="stylesheet" href="assets/style.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/highlight.min.js"></script>
+</head>
+<body data-page="devops">
+<div class="layout">
+  <aside class="toc"></aside>
+  <main>
+
+    <section class="hero">
+      <div class="kicker">LAYER DEEP DIVE · INFRASTRUCTURE &amp; CI</div>
+      <h1>🚀 Deployment, Proxy, CI Quality Gate &amp; Playwright</h1>
+      <p class="lead">เบื้องหลังที่ทำให้โค้ดบนเครื่องเรากลายเป็นเว็บจริงที่ผ่าน <b>Quality Gate</b> บน VM และถูกทดสอบอัตโนมัติทุกครั้งที่ push โค้ดขึ้น GitHub</p>
+      <p><span class="badge infra">4 Containers (TR-02)</span> <span class="badge infra">Reverse Proxy</span> <span class="badge infra">GitHub Actions</span> <span class="badge ok">Playwright E2E</span></p>
+    </section>
+
+    <h2 id="network">เส้นทางของ Request จากอินเทอร์เน็ตถึง VM ของทีม</h2>
+    <p>ระบบของทีมไม่ได้รับทราฟฟิกจากผู้ใช้โดยตรง แต่นั่งอยู่หลัง <b>Proxy 2 ชั้นของมหาลัย + Proxy 1 ชั้นบน VM ของเรา</b>:</p>
+    <pre class="mermaid">
+flowchart LR
+  B["🧑‍💻 Browser<br/>bscit.sit.kmutt.ac.th<br/>/intproj26/TEAM-PATH/..."] --> UP["1. University Proxy<br/>(Valid TLS Cert)"]
+  UP --> CP["2. Course Proxy<br/>(Forward ตาม Team Path)"]
+  CP -->|"HTTPS 443<br/>ส่ง Path เดิมมาด้วย!"| NP["3. VM Proxy (Nginx)<br/>container: proxy"]
+  NP -->|"/intproj26/TEAM-PATH/"| FE["container: frontend<br/>(Static HTML/CSS/JS)"]
+  NP -->|"/intproj26/TEAM-PATH/api/v1/*"| BE["container: backend<br/>(Express :3000)"]
+  BE -->|"TCP :3306"| DB[("container: database<br/>(MySQL 8.4)")]
+    </pre>
+
+    <div class="grid c2">
+      <div class="card infra">
+        <h4>ทำไมต้องใช้ Relative Path (<code>./api/v1</code>)?</h4>
+        <p class="small">เพราะ URL จริงอยู่ใต้ subfolder <code>/intproj26/&lt;TEAM-PATH&gt;/</code> ถ้าเขียน <code>/api/v1/schedules</code> (มี <code>/</code> นำหน้า) เบราว์เซอร์จะยิงไปที่ <code>bscit.sit.kmutt.ac.th/api/v1/schedules</code> ซึ่ง 404 ทันที! การใช้ <code>./api/v1/...</code> ทำให้โค้ดชุดเดียวกันรันได้ทั้งบน VM และ localhost</p>
+      </div>
+      <div class="card infra">
+        <h4>ทำไมมีไฟล์ <span class="file fe">frontend/serve.json</span>?</h4>
+        <p class="small"><code>{ "cleanUrls": false }</code> ปิดการ redirect อัตโนมัติของ <code>npx serve</code> (ที่ชอบลบ <code>.html</code> ออกจาก URL) เพื่อไม่ให้ <code>my-schedule.html</code> กลายเป็น <code>/my-schedule</code> จนพัง redirect URI ของ Keycloak และ test!</p>
+      </div>
+    </div>
+
+    <h2 id="gate">The Gate — ด่านตรวจก่อนคิดคะแนนทุก PBI</h2>
+    <p>ถ้าด่านใดด่านหนึ่งใน Gate ไม่ผ่าน <b>“nothing new is Done”</b> — สิ่งที่ระบบตรวจอัตโนมัติของวิชาเช็คทุกครั้ง:</p>
+    <div class="grid c2">
+      <div class="card"><h4>🌐 TC-TR-1 (Own API only)</h4><p class="small">หน้าเว็บต้องเรียก API ของตัวเองเท่านั้น ห้ามแอบยิงไปเรียกเว็บ/API อื่น (ยกเว้น Keycloak)</p></div>
+      <div class="card"><h4>🚫 TC-TR-2 (No JS Framework)</h4><p class="small">ห้ามใช้ React, Vue, Angular, Svelte ฯลฯ (อนุญาตแค่ Vanilla JS หรือ jQuery)</p></div>
+      <div class="card"><h4>🐳 VM Check (TR-02, TR-03, TR-05)</h4><p class="small">user <code>int504check</code> รัน <code>docker</code> (ต้องเป็น Docker Engine ไม่ใช่ Podman) ตรวจว่าแยก 4 containers, ใช้ UTF-8, และอ่าน <code>package.json</code> ของ node process ใน backend ว่ามี <code>express</code> + <code>@prisma/client</code> จริง</p></div>
+      <div class="card"><h4>🧪 3 โหมดการทดสอบของวิชา</h4><p class="small"><b>Run Now</b> (กดได้ทุก 15 นาที) · <b>Trial</b> (จันทร์ 18:00 ซ้อมใหญ่) · <b>Snapshot</b> (จันทร์ 23:59 คิดคะแนนจริง)</p></div>
+    </div>
+
+    <h2 id="ci">GitHub Actions CI ของทีม (<code>.github/workflows/ci.yml</code>)</h2>
+    <p>จุดเด่นมากของ Group 43 คือไฟล์ <span class="file infra">.github/workflows/ci.yml</span> (808 บรรทัด) ที่สร้าง <b>Quality Gate จำลองขึ้นเองบน GitHub</b> รันทุกครั้งที่ push หรือเปิด PR เพื่อให้มั่นใจว่าไม่ทำโค้ดพังก่อน deploy ขึ้น VM:</p>
+
+    <div class="stepper" data-title="7 ขั้นตอนใน GitHub Actions (ci.yml)">
+      <div class="step">
+        <div class="where"><span class="badge infra">STEP 1–2</span>Checkout &amp; Setup Node.js 22</div>
+        <p>ดึงโค้ดล่าสุด พร้อมเปิด <b>MySQL 8.4 service container</b> ควบคู่ไปด้วยใน job เดียวกัน</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge fe">STEP 3</span>Syntax, Merge Conflict &amp; TR-05 Compliance</div>
+        <p>รัน <code>node --check</code> ตรวจ syntax ของไฟล์ <code>.js</code> ทุกไฟล์, เช็คว่าไม่มีเครื่องหมาย <code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code> หลงเหลือ และตรวจว่าไม่มี JS framework ต้องห้ามใน frontend</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge db">STEP 4</span>Import <code>database/init.sql</code> &amp; Verify DB</div>
+        <p>รัน <code>mysql --default-character-set=utf8mb4 &lt; database/init.sql</code> แล้ว query ตรวจจำนวนแถวของทุกตาราง (51 courses, 97 schedules, 26 lecturers, 1,181 sessions) และตรวจภาษาไทย/en-dash ว่า UTF-8 ไม่เพี้ยน</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge be">STEP 5</span>Prisma Validate &amp; Verify All 11 Models</div>
+        <p>รัน <code>npm ci</code>, <code>npx prisma validate</code>, <code>npx prisma generate</code> และทดสอบ query จริงผ่าน Prisma Client ครบทั้ง 11 model</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge auth">STEP 6</span>Mock JWKS Server &amp; Test PBI 1–10 (Required)</div>
+        <p><b>เทคนิคขั้นโปร!</b> CI ใช้ <code>jose</code> สร้างคู่กุญแจ RSA ชั่วคราว + เปิด HTTP server จำลอง endpoint <code>/certs</code> (JWKS) แล้วส่ง <code>KEYCLOAK_JWKS_URI</code> ให้ Backend — ทำให้ทดสอบ PBI10 ได้ทุกเคส (token หมดอายุ, <code>azp</code> ผิดทีม, role ผิด, แอบดู ID คนอื่น) <b>โดยไม่ต้องพึ่ง Keycloak จริง!</b></p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge warn">STEP 7</span>Preview Suite สำหรับ PBI 11–12</div>
+        <p>ยิงทดสอบเคส clash (แถว 93–97, <code>acceptClash: true</code>) และเคส weekly sessions (วันหยุด, สัปดาห์สอบ, นอกเทอม)</p>
+      </div>
+      <div class="step">
+        <div class="where"><span class="badge infra">JOB 2</span>Mark Production Deployment (main only)</div>
+        <p>เมื่อ merge เข้า <code>main</code> และผ่านทุก step จะบันทึกสถานะ deployment environment บน GitHub</p>
+      </div>
+    </div>
+
+    <div class="callout tip"><span class="t">🏆 ทำไมเทคนิค Mock JWKS ใน Step 6 ถึงเจ๋งมาก?</span>
+      สังเกตใน <span class="file be">backend/src/middleware/auth.middleware.js</span> ที่ทีมเขียน <code>process.env.KEYCLOAK_JWKS_URI || ...</code> ไว้ให้ override ได้จาก environment variable — นี่คือหลักการ <b>Dependency Injection ผ่าน Config</b> ที่ทำให้โค้ด security ทดสอบใน CI แบบ offline ได้ 100% โดยไม่แก้โค้ด production เลย!</div>
+
+    <h2 id="playwright">โครงสร้างการทดสอบด้วย Playwright (ของวิชา)</h2>
+    <div class="grid c3">
+      <div class="card be"><h4>1. <code>--project=api</code></h4><p class="small">ยิง HTTP ตรงเข้า Backend (<code>localhost:3000</code>) ตรวจ status code, shape, order, RFC 9457, auth<br><b>นับคะแนน Done</b></p></div>
+      <div class="card fe"><h4>2. <code>--project=ui</code></h4><p class="small">เปิด Browser เข้า Frontend (<code>localhost:5173</code>) แล้ว <b>mock/stub API</b> แต่ login Keycloak จริง<br><b>ใช้ช่วยตอนพัฒนา</b></p></div>
+      <div class="card infra"><h4>3. <code>e2e</code> (ทั้งหมด)</h4><p class="small">รัน test หน้าเว็บชุดเดียวกับ ui แต่ยิงกับ <b>เว็บจริงบน VM</b> ทั้งระบบ (Frontend + Backend + DB)<br><b>นับคะแนน Done</b></p></div>
+    </div>
+
+    <h2 id="alternatives">ทางเลือกอื่นด้าน DevOps &amp; Testing</h2>
+    <div class="tabs">
+      <div class="tab-panel" data-label="CI Test: Inline Node script vs Vitest + Supertest">
+        <div class="pc">
+          <div class="pro"><b>✅ Inline Node script ใน ci.yml (ปัจจุบัน)</b><ul><li>ไม่เพิ่ม devDependencies ใน <code>backend/package.json</code> (ปลอดภัยกับ VM Gate check)</li></ul></div>
+          <div class="con"><b>🔁 Vitest / Jest + Supertest</b><ul><li>รันเทสบนเครื่องนักพัฒนาได้ด้วยคำสั่งเดียว <code>npm test</code> ไม่ต้องรอ push ขึ้น GitHub</li><li>แยกไฟล์เทสเป็นระเบียบกว่า YAML 800 บรรทัด</li></ul></div>
+        </div>
+      </div>
+      <div class="tab-panel" data-label="Reverse Proxy: Nginx vs Caddy">
+        <p class="small"><b>Nginx:</b> มาตรฐานอุตสาหกรรม เบา เร็ว Config ชัดเจน (<code>location /intproj26/.../api/</code> → <code>proxy_pass</code>)<br>
+        <b>Caddy / Traefik:</b> Config สั้นกว่าและจัดการ HTTPS/Let's Encrypt อัตโนมัติ (แต่ในวิชานี้ University proxy จัดการ TLS ให้แล้ว)</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>
