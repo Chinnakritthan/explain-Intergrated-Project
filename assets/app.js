@@ -17,6 +17,7 @@ const PAGES = [
   { id: 'database', href: 'database.html', label: '🗄️ Database' },
   { id: 'devops', href: 'devops.html', label: '🚀 Deploy & CI' },
   { id: 'filemap', href: 'filemap.html', label: '🗺️ File Map' },
+  { id: 'quiz', href: 'quiz.html', label: '📝 ข้อสอบ' },
 ];
 
 const page = document.body.dataset.page || 'home';
