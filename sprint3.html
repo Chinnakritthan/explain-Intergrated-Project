@@ -480,8 +480,8 @@ flowchart TD
     const pct = m => Math.max(0, Math.min(100, ((m - minT) / span) * 100));
     const ticks = [8,10,12,14,16,18,20].map(h => `<span class="tick" style="left:${pct(h*60)}%">${String(h).padStart(2,'0')}:00</span>`).join('');
     $('clash-tl').innerHTML = `
-      <div class="bar a" style="left:${pct(am1)}%;width:${Math.max(4, pct(am2)-pct(am1))}%">A (${ad.slice(0,3)} ${as}-${ae}, W${aws}-${awe})</div>
-      <div class="bar b" style="left:${pct(bm1)}%;width:${Math.max(4, pct(bm2)-pct(bm1))}%">B (${bd.slice(0,3)} ${bs}-${be}, W${bws}-${bwe})</div>
+      <div class="bar a" title="A (${ad} ${as}-${ae}, W${aws}-${awe})" style="left:${pct(am1)}%;width:${Math.max(4, pct(am2)-pct(am1))}%">A · ${as}-${ae}</div>
+      <div class="bar b" title="B (${bd} ${bs}-${be}, W${bws}-${bwe})" style="left:${pct(bm1)}%;width:${Math.max(4, pct(bm2)-pct(bm1))}%">B · ${bs}-${be}</div>
       ${ticks}`;
 
     const mk = (ok, label) => `${ok ? '<span class="ok">✓ true</span>' : '<span class="bad">✗ false</span>'} — ${label}`;

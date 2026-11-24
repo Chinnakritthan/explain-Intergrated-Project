@@ -61,8 +61,10 @@ code, pre, kbd { font-family: var(--mono); }
   padding: .08em .42em;
   border-radius: 6px;
   font-size: .86em;
-  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
+table.t :not(pre) > code { white-space: normal; overflow-wrap: break-word; }
 img { max-width: 100%; }
 
 /* ---------- top bar (Lovart clean chrome) ---------- */
