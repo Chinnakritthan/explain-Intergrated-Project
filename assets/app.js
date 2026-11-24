@@ -202,10 +202,21 @@ async function buildMermaid() {
     const { default: mermaid } = await import('https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs');
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'dark',
+      theme: 'base',
       securityLevel: 'loose',
-      fontFamily: 'IBM Plex Sans Thai, sans-serif',
-      themeVariables: { primaryColor: '#1b2547', primaryBorderColor: '#7c9cff', lineColor: '#9aa3c7', primaryTextColor: '#e6e9f5' },
+      fontFamily: 'Inter, IBM Plex Sans Thai, sans-serif',
+      themeVariables: {
+        background: '#fafafa',
+        primaryColor: '#ffffff',
+        primaryBorderColor: '#d4d4d8',
+        primaryTextColor: '#171717',
+        secondaryColor: '#f4f4f5',
+        tertiaryColor: '#f8fafc',
+        lineColor: '#52525b',
+        clusterBkg: '#f4f4f5',
+        clusterBorder: '#d4d4d8',
+        edgeLabelBackground: '#ffffff',
+      },
     });
     await mermaid.run({ querySelector: '.mermaid' });
   } catch (err) {
