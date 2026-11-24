@@ -165,7 +165,7 @@ erDiagram
       <table class="t">
         <thead><tr><th>ตารางใหม่</th><th>จำนวนแถว</th><th>Key &amp; Constraint</th><th>บทบาทในระบบ</th></tr></thead>
         <tbody>
-          <tr><td><code>academic_settings</code></td><td>1</td><td><code>CHECK (id = 1)</code> (Singleton)</td><td>เก็บปีการศึกษา <code>2569</code>, เทอม <code>1</code>, รหัสหลักสูตร <code>504504</code> (`BSc.IT`)</td></tr>
+          <tr><td><code>academic_settings</code></td><td>1</td><td><code>CHECK (id = 1)</code> (Singleton)</td><td>เก็บปีการศึกษา <code>2569</code>, เทอม <code>1</code>, รหัสหลักสูตร <code>504504</code> (<code>BSc.IT</code>)</td></tr>
           <tr><td><code>student_group_ranges</code></td><td>8</td><td><code>UNIQUE (entry_year, student_group)</code><br><code>CHECK (from_no &lt;= to_no)</code></td><td>บอกช่วงเลขท้าย 3 หลักของแต่ละรุ่น (69, 68, 67, 66) ว่าอยู่ Group A หรือ Group B</td></tr>
           <tr><td><code>selections</code></td><td>0 (เริ่มว่าง)</td><td>Composite PK <code>(student_id, course_id)</code><br><code>FK course_id → courses(id)</code></td><td>การันตีระดับ DB ว่า 1 คนเลือก 1 วิชาได้แค่ 1 section; เก็บ <code>created_at</code> และ <code>updated_at</code> เป็น <code>DATETIME(3)</code> (มิลลิวินาที)</td></tr>
         </tbody>
@@ -183,7 +183,7 @@ erDiagram
       <table class="t">
         <thead><tr><th>กลุ่ม</th><th>ตาราง / การเปลี่ยนแปลง</th><th>จำนวนแถว</th><th>จุดสำคัญ</th></tr></thead>
         <tbody>
-          <tr><td><b>อัปเกรดเดิม</b></td><td><code>courses_schedule</code> (แถว 93–97)<br><code>academic_settings</code> (+2 คอลัมน์)</td><td>92 → <b>97</b><br>1</td><td>แถว 93–97 ใช้เทส Clash edge case (แตะเวลา, ชนเฉพาะกลุ่ม B, 2 วันชนแค่วันเดียว); เพิ่ม <code>semester_start_date</code> (`2026-08-03`) และ <code>semester_end_date</code> (`2026-12-12`)</td></tr>
+          <tr><td><b>อัปเกรดเดิม</b></td><td><code>courses_schedule</code> (แถว 93–97)<br><code>academic_settings</code> (+2 คอลัมน์)</td><td>92 → <b>97</b><br>1</td><td>แถว 93–97 ใช้เทส Clash edge case (แตะเวลา, ชนเฉพาะกลุ่ม B, 2 วันชนแค่วันเดียว); เพิ่ม <code>semester_start_date</code> (<code>2026-08-03</code>) และ <code>semester_end_date</code> (<code>2026-12-12</code>)</td></tr>
           <tr><td><b>PBI 8</b></td><td><code>lecturers</code><br><code>schedule_lecturer</code></td><td>26<br>70+</td><td><b>M:N Join Table</b> — เพราะอาจารย์สอนที่ <code>schedule</code> ไม่ใช่ที่ <code>course</code> (1 คาบมี 2 อาจารย์ได้ เช่น DSI111 และมีอาจารย์ 2 คนที่ไม่มีคาบสอนเทอมนี้)</td></tr>
           <tr><td><b>PBI 12</b></td><td><code>academic_weeks</code><br><code>holidays</code><br><code>exam_periods</code></td><td>19<br>7<br>3</td><td>19 สัปดาห์ (W1–W15 + Exam 1–3), 7 วันหยุดภาษาไทย (ยังแสดงคาบแต่ติด Note), 3 ช่วงสอบ (ตัดคาบออกหมด เช่น จันทร์ 26/10/2026)</td></tr>
           <tr><td><b>PBI 12 (สร้างเอง)</b></td><td><code>sessions</code></td><td><b>1,181</b></td><td><code>UNIQUE (schedule_id, date)</code> — สร้างอัตโนมัติด้วย SQL CTE + <code>ROW_NUMBER() OVER (ORDER BY date, start_time, schedule_id)</code></td></tr>
