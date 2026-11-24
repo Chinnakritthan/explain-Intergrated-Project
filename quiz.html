@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ข้อสอบทบทวน Frontend Sprint 2 | ITB-CSV Explained</title>
+  <title>ข้อสอบ &amp; สนามจี้ถามปากเปล่า Frontend Sprint 2 | ITB-CSV Explained</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.10.0/build/styles/github.min.css">
@@ -16,45 +16,63 @@
   <main>
 
     <section class="hero">
-      <div class="kicker">SELF-ASSESSMENT &amp; ORAL DEFENSE PREP · FRONTEND SPRINT 2</div>
-      <h1>📝 ข้อสอบทบทวนโค้ด — เน้น Frontend Sprint 2 (PBI 3–7)</h1>
-      <p class="lead">ชุดข้อสอบเจาะลึกจากโค้ดจริงของทีมใน <code>frontend/</code> ช่วง <b>Sprint 2</b> (Keycloak Sign-in, หน้า <code>my-schedule.html</code>, การแยก 2 ตาราง, State Update ไม่ Refetch, และ <code>&lt;dialog&gt;</code>) เพื่อเช็คความเข้าใจก่อนสอบหรือตอบคำถามอาจารย์</p>
-      <p><span class="badge fe">15 ข้อปรนัย</span> <span class="badge warn">4 ข้อหาบั๊กในโค้ด</span> <span class="badge auth">6 แนวถามปากเปล่า</span></p>
+      <div class="kicker">DEEP EXAM &amp; SOCRATIC ORAL DEFENSE · FRONTEND SPRINT 2</div>
+      <h1>📝 ข้อสอบ + สนามสอบปากเปล่าแบบ “จี้ลึกทีละชั้น” (Sprint 2)</h1>
+      <p class="lead">ออกแบบตามสไตล์สอบปากเปล่าของ INT504 (<i>“you answer for every line you submit”</i>) — โดยเฉพาะส่วน <b>สนามจี้ถามทีละชั้น</b> ที่พอเราตอบชั้นที่ 1 ได้แล้ว อาจารย์จะ <b>จี้ลึกลงไปชั้น 2 → ชั้น 3 → ชั้น 4</b> จนเข้าใจแก่นแท้ของทุกบรรทัดใน Frontend Sprint 2</p>
+      <p>
+        <span class="badge auth">🔥 10 ชุดจี้ถามปากเปล่า (40 คำถามลึก)</span>
+        <span class="badge fe">25 ข้อปรนัย</span>
+        <span class="badge warn">6 ข้อจับบั๊กโค้ดจริง</span>
+      </p>
       <div class="jump-bar">
-        <a href="#part1">1️⃣ ข้อสอบปรนัย (15 ข้อ)</a>
-        <a href="#part2">2️⃣ อ่านโค้ดหาบั๊ก (4 ข้อ)</a>
-        <a href="#part3">3️⃣ แนวถาม-ตอบปากเปล่า (6 ข้อ)</a>
+        <a href="#part-oral">🔥 1. สอบปากเปล่าจี้ลึก (10 ชุด · 40 ข้อ)</a>
+        <a href="#part-mcq">2️⃣ ข้อสอบปรนัย (25 ข้อ)</a>
+        <a href="#part-bug">3️⃣ อ่านโค้ดจับบั๊ก (6 ข้อ)</a>
       </div>
     </section>
 
-    <!-- ================= PART 1: MCQ ================= -->
+    <!-- ================= PART 1: INTERACTIVE DRILL-DOWN ORAL DEFENSE ================= -->
     <div class="sprint-banner s2">
-      <h2 id="part1">1️⃣ ข้อสอบปรนัย — Frontend Sprint 2 (15 ข้อ)</h2>
-      <p>คลิกเลือกคำตอบเพื่อตรวจทันที พร้อมเฉลยละเอียดและอ้างอิงชื่อไฟล์จริงในโปรเจกต์</p>
+      <h2 id="part-oral">🔥 1. สนามสอบปากเปล่าแบบจี้ลึก (10 ชุด × 4 ชั้น = 40 คำถาม)</h2>
+      <p>วิธีฝึก: อ่าน <b>ชั้น 1</b> → ลองตอบปากเปล่าก่อน → กด <b>ดูแนวคำตอบ</b> แล้วกด <b>🔥 โดนจี้ต่อชั้นถัดไป</b> ไล่ลึกไปจนถึงชั้น 4 (Edge Case / What-if) ทุกข้ออ้างอิงโค้ดจริงของทีม</p>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+      <button type="button" class="btn primary" id="drill-expand-all">📖 เปิดเฉลยทุกชุดทุกชั้น</button>
+      <button type="button" class="btn" id="drill-collapse-all">🔄 รีเซ็ตกลับชั้น 1 ทุกชุด</button>
+      <span class="muted small" style="margin-left:auto" id="drill-stat">ปลดล็อกแล้ว 0 / 40 คำถาม</span>
+    </div>
+
+    <div id="drill-root"></div>
+
+    <!-- ================= PART 2: 25 MCQs ================= -->
+    <div class="sprint-banner s1">
+      <h2 id="part-mcq">2️⃣ ข้อสอบปรนัย 4 ตัวเลือก — Sprint 2 (25 ข้อ)</h2>
+      <p>ครอบคลุม PBI 3–7 แบบละเอียดทุกบรรทัด ตั้งแต่ Keycloak, การโหลด 3 API, แยก 2 ตาราง, Optimistic State, Dialog, จนถึงจุดที่เชื่อมกับ Backend</p>
     </div>
 
     <div class="quiz-bar">
-      <strong id="q-score">ตอบแล้ว 0 / 15 · ถูก 0 ข้อ</strong>
+      <strong id="q-score">ตอบแล้ว 0 / 25 · ถูก 0 ข้อ</strong>
       <div class="quiz-progress"><div id="q-bar"></div></div>
       <button type="button" class="btn" id="q-reveal">👀 เฉลยทั้งหมด</button>
       <button type="button" class="btn primary" id="q-reset">🔄 ทำใหม่</button>
     </div>
 
     <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px" id="q-filters">
-      <button type="button" class="btn primary" data-cat="all">ทั้งหมด (15)</button>
-      <button type="button" class="btn" data-cat="pbi3">PBI 3 · Auth</button>
-      <button type="button" class="btn" data-cat="pbi4">PBI 4 · View &amp; Tables</button>
-      <button type="button" class="btn" data-cat="pbi5">PBI 5 · Select</button>
-      <button type="button" class="btn" data-cat="pbi6">PBI 6 · Remove</button>
-      <button type="button" class="btn" data-cat="pbi7">PBI 7 · Change &amp; Infra</button>
+      <button type="button" class="btn primary" data-cat="all">ทั้งหมด (25)</button>
+      <button type="button" class="btn" data-cat="pbi3">PBI 3 · Auth (5)</button>
+      <button type="button" class="btn" data-cat="pbi4">PBI 4 · View &amp; Tables (6)</button>
+      <button type="button" class="btn" data-cat="pbi5">PBI 5 · Select (4)</button>
+      <button type="button" class="btn" data-cat="pbi6">PBI 6 · Remove &amp; Dialog (4)</button>
+      <button type="button" class="btn" data-cat="pbi7">PBI 7 · Change, API &amp; Edge (6)</button>
     </div>
 
     <div id="quiz-root"></div>
 
-    <!-- ================= PART 2: CODE TRACING & BUG HUNT ================= -->
-    <div class="sprint-banner s1">
-      <h2 id="part2">2️⃣ อ่านโค้ดจริงแล้วหาจุดพัง (Bug Hunt — 4 ข้อ)</h2>
-      <p>ลองอ่านโค้ดจำลองด้านล่างแล้วทายว่า <b>“โค้ดนี้มีบั๊กตรงไหน และจะทำให้ Playwright ตกข้อใด?”</b> จากนั้นกดเปิดดูเฉลย</p>
+    <!-- ================= PART 3: 6 CODE BUG HUNTS ================= -->
+    <div class="sprint-banner s3">
+      <h2 id="part-bug">3️⃣ อ่านโค้ดจริงแล้วหาจุดพัง (Bug Hunt — 6 ข้อ)</h2>
+      <p>โค้ดด้านล่างดัดแปลงจากไฟล์จริงใน <code>frontend/</code> โดยซ่อนบั๊กยอดฮิตไว้ — ลองจับให้ได้ก่อนกดดูเฉลย!</p>
     </div>
 
     <div class="q-card">
@@ -73,8 +91,8 @@
         <div class="fc-body">
           <p><span class="bad">ผิด 2 จุดใหญ่!</span></p>
           <ol>
-            <li><b>Hardcode ชั้นปีและกลุ่ม (<code>2, 'A'</code>):</b> หน้าเว็บไม่รู้ <code>yearLevel</code> กับ <code>studentGroup</code> จนกว่า <code>fetchStudentProfile(studentId)</code> จะตอบกลับมาก่อน</li>
-            <li><b>ละเมิดกฎห้ามยิง Request เกินความจำเป็น:</b> ถ้านักศึกษาไม่ใช่เด็ก BSc.IT (<code>profile</code> ตอบ 404 → <code>null</code>) โค้ดนี้ดันยิง <code>yearSchedules</code> และ <code>selections</code> ออกไปพร้อมกันแล้ว! ที่ถูกต้องใน <span class="file fe">my-schedule-main.js</span> คือต้อง <code>await fetchStudentProfile</code> ก่อน เช็ค <code>if (!profile) return</code> แล้วค่อยใช้ <code>Promise.all</code> ยิงอีก 2 เส้น</li>
+            <li><b>Hardcode ชั้นปีและกลุ่ม (<code>2, 'A'</code>):</b> หน้าเว็บยังไม่รู้ <code>yearLevel</code> กับ <code>studentGroup</code> จนกว่า <code>fetchStudentProfile(studentId)</code> จะตอบกลับมา</li>
+            <li><b>ละเมิดกฎห้ามยิง Request เกินความจำเป็น:</b> ถ้าผู้ใช้ไม่ใช่เด็ก BSc.IT (404 → <code>null</code>) โค้ดนี้ยิง <code>yearSchedules</code> และ <code>selections</code> ออกไปแล้ว! ที่ถูกต้องคือต้อง <code>await fetchStudentProfile</code> ก่อน เช็ค <code>if (!profile) return</code> แล้วค่อย <code>Promise.all</code> อีก 2 เส้น</li>
           </ol>
         </div>
       </details>
@@ -82,7 +100,7 @@
 
     <div class="q-card">
       <div class="q-head"><span class="q-num">BUG 2</span><span class="badge fe">PBI 4 / 5</span><span class="file fe">js/components/my-schedule-renderer.js</span></div>
-      <div class="q-title">ถ้าแก้เงื่อนไขกรอง <code>courseOptionRows</code> เป็นแบบนี้ จะเกิดอาการแปลกอะไรบนหน้าเว็บเมื่อนักศึกษากด Select LNG202 section 9?</div>
+      <div class="q-title">ถ้าแก้เงื่อนไขกรอง <code>courseOptionRows</code> เป็นแบบนี้ จะเกิดอาการแปลกอะไรเมื่อกด Select LNG202 section 9?</div>
       <script type="text/x-code">
         const courseOptionRows = schedules.filter(item => {
           if (item.fixed) return false;
@@ -94,16 +112,15 @@
       <details class="flashcard">
         <summary>ดูเฉลยและเหตุผล</summary>
         <div class="fc-body">
-          <p><span class="bad">LNG202 section 7, 8, 10 จะยังคงค้างอยู่ในตาราง Courses to Choose!</span></p>
-          <p>เพราะเงื่อนไขไปเช็คทั้ง <code>courseId</code> <b>และ</b> <code>section</code> — พอเลือก section 9 มันจะซ่อนแค่แถว section 9 แต่ section อื่นของวิชาเดียวกันยังโผล่อยู่ (ผิด PBI5: “every row of that course leaves Courses to Choose”)<br>
-          <b>วิธีที่ถูก:</b> เช็คแค่ <code>sel.courseId === item.course.id</code> เพื่อเอาทุก section ของวิชานั้นออกจากตาราง Courses to Choose ทันที</p>
+          <p><span class="bad">LNG202 section 7, 8, 10 จะค้างอยู่ในตาราง Courses to Choose!</span></p>
+          <p>เพราะเช็คทั้ง <code>courseId</code> และ <code>section</code> ทำให้ซ่อนแค่ section 9 — ที่ถูกต้องต้องเช็คแค่ <code>sel.courseId === item.course.id</code> เพื่อเอาทุก section ของวิชานั้นออกจากตาราง Courses to Choose ทันที</p>
         </div>
       </details>
     </div>
 
     <div class="q-card">
       <div class="q-head"><span class="q-num">BUG 3</span><span class="badge fe">PBI 7</span><span class="file fe">js/components/my-schedule-renderer.js</span></div>
-      <div class="q-title">สมมติว่าลืมบรรทัด <code>options.innerHTML = '';</code> และ <code>confirmBtn.disabled = true;</code> ใน <code>showChangeDialog()</code> จะเกิดอะไรขึ้นเมื่อผู้ใช้กด Change ครั้งที่ 2 (TC-PBI7-7)?</div>
+      <div class="q-title">ถ้าลืม <code>options.innerHTML = '';</code> และ <code>confirmBtn.disabled = true;</code> ใน <code>showChangeDialog()</code> จะเกิดอะไรขึ้นตอนกด Change ครั้งที่ 2 (TC-PBI7-7)?</div>
       <script type="text/x-code">
         export function showChangeDialog(currentSection, availableSections, onConfirm) {
           // ❌ ลืมล้าง options.innerHTML และลืมรีเซ็ต confirmBtn.disabled = true
@@ -118,8 +135,8 @@
         <div class="fc-body">
           <p><span class="bad">พัง 2 เด้ง!</span></p>
           <ol>
-            <li><b>Radio เก่าสะสมซ้ำเรื่อย ๆ:</b> ทุกครั้งที่เปิด Change dialog ตัวเลือก radio รอบเก่าจะไม่หายไป แต่ถูกต่อท้ายเพิ่มเข้าไปเรื่อย ๆ (และจะมี section ปัจจุบันค้างอยู่จากรอบก่อน)</li>
-            <li><b>ปุ่ม Change เปิดค้างอยู่ทั้งที่ยังไม่ได้เลือก radio:</b> เพราะรอบก่อนผู้ใช้เคยติ๊ก radio ทำให้ <code>confirmBtn.disabled = false</code> ค้างอยู่ ผิดสเปก PBI7 (“Change disabled until one is picked”)</li>
+            <li><b>Radio เก่าสะสมซ้ำเรื่อย ๆ</b> ทำให้มีตัวเลือก section เก่า (ที่ตอนนี้เป็น section ปัจจุบันแล้ว) ค้างอยู่ใน dialog</li>
+            <li><b>ปุ่ม Change เปิดค้างอยู่ทั้งที่ยังไม่ได้เลือก radio</b> เพราะ <code>confirmBtn.disabled = false</code> จากรอบที่แล้วยังไม่ถูกรีเซ็ต</li>
           </ol>
         </div>
       </details>
@@ -127,7 +144,7 @@
 
     <div class="q-card">
       <div class="q-head"><span class="q-num">BUG 4</span><span class="badge auth">PBI 3</span><span class="file auth">js/auth.js</span></div>
-      <div class="q-title">ถ้าแก้ฟังก์ชัน <code>signOut()</code> จาก <code>new URL('./', location.href).href</code> เป็น <code>location.origin + '/'</code> จะเกิดอะไรขึ้นเมื่อ Deploy ขึ้น VM จริง?</div>
+      <div class="q-title">ถ้าแก้ <code>signOut()</code> จาก <code>new URL('./', location.href).href</code> เป็น <code>location.origin + '/'</code> จะเกิดอะไรขึ้นบน VM จริง?</div>
       <script type="text/x-code">
         export function signOut() {
           return keycloak.logout({ redirectUri: location.origin + '/' });
@@ -136,87 +153,490 @@
       <details class="flashcard">
         <summary>ดูเฉลยและเหตุผล</summary>
         <div class="fc-body">
-          <p><span class="bad">Keycloak จะปฏิเสธ Redirect URI หรือเด้งกลับผิดหน้า!</span></p>
-          <p>บน localhost (<code>http://localhost:5173/</code>) โค้ดนี้ดูเหมือนจะทำงานได้ แต่บน VM จริงเว็บอยู่ใต้ <code>https://bscit.sit.kmutt.ac.th/intproj26/&lt;TEAM-PATH&gt;/</code> — ค่า <code>location.origin + '/'</code> จะกลายเป็น <code>https://bscit.sit.kmutt.ac.th/</code> ซึ่งเป็น root ของคณะ ไม่ใช่หน้าแรกของทีม (และไม่อยู่ใน Valid Post Logout Redirect URIs ของ client ทีมเราด้วย!)<br>
-          การใช้ <code>new URL('./', location.href).href</code> จะถอยจาก <code>.../my-schedule.html</code> ไปที่โฟลเดอร์เดียวกัน (<code>.../intproj26/&lt;TEAM-PATH&gt;/</code>) ได้ถูกต้องทั้งบนเครื่องและบน VM</p>
+          <p><span class="bad">Keycloak ปฏิเสธ Redirect URI หรือเด้งไป root ของคณะแทนหน้าแรกของทีม!</span></p>
+          <p>บน VM เว็บอยู่ใต้ <code>/intproj26/&lt;TEAM-PATH&gt;/</code> แต่ <code>location.origin + '/'</code> จะตัด path ออกจนเหลือแค่ <code>https://bscit.sit.kmutt.ac.th/</code> — ต้องใช้ <code>new URL('./', location.href).href</code> เพื่อให้ถอยจาก <code>my-schedule.html</code> ไปโฟลเดอร์เดียวกันได้ทุก environment</p>
         </div>
       </details>
     </div>
 
-    <!-- ================= PART 3: ORAL DEFENSE FLASHCARDS ================= -->
-    <div class="sprint-banner ov">
-      <h2 id="part3">3️⃣ แนวคำถาม-ตอบสอบปากเปล่า (Oral Defense — 6 ข้อ)</h2>
-      <p>ซ้อมตอบให้คล่องก่อนเจออาจารย์ — ลองตอบในใจก่อนแล้วคลิกเปิดเทียบกับแนวคำตอบ</p>
+    <div class="q-card">
+      <div class="q-head"><span class="q-num">BUG 5</span><span class="badge fe">PBI 6</span><span class="file fe">js/components/my-schedule-renderer.js</span></div>
+      <div class="q-title">ถ้าเปลี่ยน <code>confirmBtn.onclick = ...</code> ใน <code>showMessageDialog()</code> เป็น <code>confirmBtn.addEventListener('click', ...)</code> จะเกิดบั๊กอะไรตอนผู้ใช้กด Remove วิชาที่ 1 แล้วไปกด Remove วิชาที่ 2?</div>
+      <script type="text/x-code">
+        export function showMessageDialog(message, onClose, isConfirm = false) {
+          // ❌ ใช้ addEventListener ซ้ำบนปุ่มเดิมทุกครั้งที่เปิด dialog
+          confirmBtn.addEventListener('click', () => {
+            dialog.close();
+            if (onClose) onClose();
+          });
+          dialog.showModal();
+        }
+      </script>
+      <details class="flashcard">
+        <summary>ดูเฉลยและเหตุผล</summary>
+        <div class="fc-body">
+          <p><span class="bad">Event Listener สะสม (Memory/Handler Leak) → ยิง DELETE ซ้ำ 2 วิชาพร้อมกัน!</span></p>
+          <p>เพราะ <code>&lt;dialog id="message-dialog"&gt;</code> และปุ่ม <code>confirmBtn</code> เป็น element เดิมที่ถูกใช้ซ้ำทุกครั้งที่เปิด! พอเปิดรอบที่ 2 เพื่อลบวิชา B แล้วกดยืนยัน listener ของรอบแรก (วิชา A) จะทำงานซ้ำด้วย → ยิง <code>DELETE .../selections/วิชาA</code> (ได้ 404 จนเด้ง dialog “This course is not in your schedule.”!) พร้อมกับลบวิชา B<br>
+          <b>วิธีแก้:</b> ใช้ <code>confirmBtn.onclick = ...</code> (เขียนทับ handler เดิมทุกครั้งแบบที่ทีมทำ) หรือใช้ <code>{ once: true }</code> + ล้างด้วย <code>AbortController</code></p>
+        </div>
+      </details>
     </div>
 
-    <details class="flashcard">
-      <summary>1. อธิบาย Flow ตั้งแต่ผู้ใช้คลิก “My Schedule” จากหน้าแรก จนตารางของนักศึกษาปรากฏบนหน้าจอ ผ่านไฟล์ไหนบ้าง?</summary>
-      <div class="fc-body">
-        <ol>
-          <li><span class="file fe">index.html</span>: ลิงก์ <code>&lt;a href="./my-schedule.html"&gt;</code> พาไปหน้าใหม่ (หน้าแรกไม่เรียก Keycloak)</li>
-          <li><span class="file fe">my-schedule.html</span> โหลด <span class="file fe">js/my-schedule-main.js</span> → เรียก <code>requireSignIn()</code> ใน <span class="file auth">js/auth.js</span></li>
-          <li><span class="file auth">auth.js</span> ใช้ <span class="file auth">config.js</span> + <span class="file auth">vendor/keycloak.js</span> ทำ <code>keycloak.init({ onLoad: 'login-required', pkceMethod: 'S256', checkLoginIframe: false })</code> → redirect ไปล็อกอินที่ Keycloak แล้วกลับมาพร้อม JWT</li>
-          <li>อ่าน <code>user.name</code> แสดงบน header และเปิดปุ่ม <code>Sign Out</code></li>
-          <li>เรียก <span class="file fe">my-schedule-api.js</span>: ยิง <code>fetchStudentProfile(studentId)</code> ก่อน ถ้าได้ 200 ค่อยยิง <code>fetchYearSchedules</code> + <code>fetchStudentSelections</code> พร้อมกันด้วย <code>Promise.all</code></li>
-          <li>ส่งข้อมูลทั้งหมดให้ <code>renderStudentTables()</code> และ <code>renderStudentHeader()</code> ใน <span class="file fe">components/my-schedule-renderer.js</span> วาดตารางทั้ง 2 ตาราง</li>
-        </ol>
-      </div>
-    </details>
-
-    <details class="flashcard">
-      <summary>2. ทำไมหน้า Frontend ถึงไม่แกะรหัสนักศึกษา 11 หลักเอง และไม่คำนวณว่าวิชาไหนเป็น Fixed หรือ Option เอง?</summary>
-      <div class="fc-body">
-        <p>ตามสเปก PBI4 <b>“The page computes nothing”</b> — กฎเรื่องปีการศึกษา (<code>academic_settings</code>), ช่วงกลุ่ม A/B (<code>student_group_ranges</code>) และจำนวน section ทั้งหมดอยู่ในฐานข้อมูลฝั่ง Backend หากคำนวณบน Frontend จะเกิดการเขียน logic ซ้ำซ้อนและอาจเพี้ยนเมื่อข้อมูลเปลี่ยน หน้าเว็บจึงเชื่อค่า <code>yearLevel</code>, <code>studentGroup</code> และ <code>fixed: true/false</code> ที่ Backend ตอบกลับมาเท่านั้น</p>
-      </div>
-    </details>
-
-    <details class="flashcard">
-      <summary>3. ตอนนักศึกษากดปุ่ม Select แล้วได้ Status 201 กับ 409 โค้ด Frontend จัดการต่างกันอย่างไร?</summary>
-      <div class="fc-body">
-        <ul>
-          <li><b>ได้ <code>201 Created</code>:</b> ทำ <code>selections.push(result.data)</code> แล้วเรียก <code>renderStudentTables(...)</code> ทันที — <b>ไม่ reload หน้า และไม่ยิง GET schedules หรือ GET selections ซ้ำ</b> (ตาม TR-06)</li>
-          <li><b>ได้ <code>409 Conflict</code> (already-selected):</b> แปลว่า state ในหน้าจอล้าสมัย (เช่น เลือกไปแล้วในอีกแท็บ) จึงเปิด <code>&lt;dialog id="message-dialog"&gt;</code> แจ้ง <i>“This course is already in your schedule.”</i> เมื่อผู้ใช้กด OK หรือ Esc ค่อยเรียก <code>fetchStudentSelections(studentId)</code> มาซิงก์รายการที่เลือกใหม่แล้ววาด 2 ตารางใหม่</li>
-        </ul>
-      </div>
-    </details>
-
-    <details class="flashcard">
-      <summary>4. ทำไมตอนกด Change ใน <code>handleChange()</code> ต้องใช้ <code>new Map(...)</code> มากรอง <code>availableSections</code> ก่อนส่งให้ <code>showChangeDialog()</code>?</summary>
-      <div class="fc-body">
-        <p>เพราะ 1 section ของวิชาอาจมีตารางเรียนมากกว่า 1 วันต่อสัปดาห์ (เช่น เรียนทั้งวันจันทร์และวันพฤหัส → มี 2 แถวใน array <code>schedules</code> ที่มี <code>course.id</code> และ <code>section</code> เดียวกัน) การทำ <code>new Map(schedules.filter(...).map(s =&gt; [Number(s.section), s])).values()</code> เป็นการ <b>deduplicate ตามเลข section</b> เพื่อไม่ให้มีปุ่ม radio ของ section เดียวกันโผล่ซ้ำ 2 อันใน dialog</p>
-      </div>
-    </details>
-
-    <details class="flashcard">
-      <summary>5. ทำไมข้อสอบ Playwright ถึงบังคับให้ใช้ <code>&lt;dialog&gt;</code> ห้ามใช้ <code>alert()</code> / <code>confirm()</code> และมีเทคนิคคุมปุ่ม Esc อย่างไร?</summary>
-      <div class="fc-body">
-        <p><code>window.alert()</code> และ <code>window.confirm()</code> เป็น native popup ของเบราว์เซอร์ที่ไม่ได้อยู่ใน DOM Tree ทำให้เทสไม่สามารถตรวจจับ element ภายใน (เช่น radio buttons, ปุ่ม Remove/Cancel) และตกแต่ง CSS ไม่ได้<br>
-        ส่วนการคุมปุ่ม Esc:
-        <ul>
-          <li><b>Fatal Error Dialog (<code>error-dialog</code>):</b> ใส่ <code>closedby="none"</code> และดัก <code>addEventListener('cancel', e =&gt; e.preventDefault())</code> เพื่อ <b>ห้ามปิด</b> ด้วย Esc</li>
-          <li><b>Message/Confirm/Change Dialog:</b> ดัก <code>dialog.oncancel</code> ให้ปิด dialog อย่างเรียบร้อย (และในเคส 404/409 ต้องเรียก callback <code>refreshSelections</code> ด้วยแม้จะปิดด้วย Esc!)</li>
-        </ul>
-        </p>
-      </div>
-    </details>
-
-    <details class="flashcard">
-      <summary>6. ในโค้ด Frontend Sprint 2 มีจุดไหนที่ถ้ามีเวลาเพิ่มสามารถ Refactor ให้ดีขึ้นได้อีกบ้าง?</summary>
-      <div class="fc-body">
-        <ol>
-          <li><b>ห่อ Dialog เป็น Promise:</b> เปลี่ยน callback ซ้อนใน <code>showMessageDialog(msg, onConfirm)</code> เป็น <code>const ok = await confirmDialog(msg)</code> จะอ่านง่ายขึ้นมาก</li>
-          <li><b>Event Delegation:</b> ผูก <code>click</code> listener บน <code>&lt;tbody&gt;</code> แค่จุดเดียวแทนการสร้าง listener ใหม่ทุกปุ่ม Select/Remove/Change ทุกครั้งที่ render</li>
-          <li><b>ลดโค้ดสร้าง <code>&lt;td&gt;</code> ซ้ำ:</b> ใช้ array ของ column definitions + loop (เหมือนที่ทำใน <code>timetable-renderer.js</code> ของ Sprint 3) แทนการเขียน <code>document.createElement('td')</code> 11 บล็อกติดกัน</li>
-        </ol>
-      </div>
-    </details>
+    <div class="q-card">
+      <div class="q-head"><span class="q-num">BUG 6</span><span class="badge fe">PBI 7</span><span class="file fe">js/components/my-schedule-renderer.js</span></div>
+      <div class="q-title">ใน <code>showChangeDialog()</code> ถ้าลืมครอบ <code>Number()</code> ตอนอ่านค่า radio (<code>const newSection = selected.value;</code>) จะเกิดหายนะอะไรขึ้นทั้งฝั่ง Frontend และ Backend?</div>
+      <script type="text/x-code">
+        confirmBtn.onclick = () => {
+          const selected = options.querySelector('input[name="change-section"]:checked');
+          if (!selected) return;
+          const newSection = selected.value;   // ❌ เป็น string เช่น "10" ไม่ใช่ number 10
+          dialog.close();
+          onConfirm(newSection);
+        };
+      </script>
+      <details class="flashcard">
+        <summary>ดูเฉลยและเหตุผล</summary>
+        <div class="fc-body">
+          <p><span class="bad">พังทั้ง 2 ฝั่งเลย!</span></p>
+          <ol>
+            <li><b>ฝั่ง Frontend (ถ้า API ผ่าน):</b> <code>selections</code> จะเก็บ <code>section: "10"</code> (string) พอ <code>renderStudentTables()</code> เทียบ <code>sel.section === item.section</code> (<code>"10" === 10</code> เป็น <code>false</code>!) <b>แถววิชานั้นจะหายวับไปจากตาราง My Schedule ทันที!</b></li>
+            <li><b>ฝั่ง Backend (ตั้งแต่ PBI 9):</b> <code>validate.js</code> เช็ค <code>typeof value === 'number'</code> → ยิง <code>{ "section": "10" }</code> เข้าไปจะโดนปฏิเสธ <b>400 Validation Failed</b> ทันที!</li>
+          </ol>
+        </div>
+      </details>
+    </div>
 
   </main>
 </div>
 <script type="module" src="assets/app.js"></script>
 <script>
 (() => {
+  // ==========================================================
+  // PART 1: 10 Deep Socratic Oral Defense Chains (40 Questions)
+  // ==========================================================
+  const DRILLS = [
+    {
+      title: 'ชุดที่ 1: Keycloak Sign-in, PKCE &amp; Sign Out',
+      badges: ['PBI 3', 'auth.js', 'index.html'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “อธิบายหน่อยว่าพอกดลิงก์ My Schedule จากหน้าแรก ระบบล็อกอินทำงานยังไง ผ่านไฟล์ไหนบ้าง?”',
+          a: 'หน้า <code>index.html</code> มีแค่ลิงก์ธรรมดา <code>&lt;a href="./my-schedule.html"&gt;</code> ไม่แตะ Keycloak เลย พอกดเข้า <code>my-schedule.html</code> ไฟล์ <code>my-schedule-main.js</code> จะเรียก <code>await requireSignIn()</code> ใน <code>js/auth.js</code> ซึ่งสร้าง <code>new Keycloak(keycloakConfig)</code> (จาก <code>config.js</code>) แล้วสั่ง <code>keycloak.init({ onLoad: "login-required", pkceMethod: "S256", checkLoginIframe: false })</code> ถ้ายังไม่ล็อกอิน เบราว์เซอร์จะ redirect ไปหน้าล็อกอินของ Keycloak พอผ่านจะ redirect กลับมาพร้อม code แล้ว <code>keycloak-js</code> แลกเป็น JWT ให้เอง',
+          kw: '🎯 คีย์เวิร์ด: OpenID Connect · Authorization Code Flow + PKCE · Browser คุยกับ Keycloak เอง Backend ไม่เคยเห็นรหัสผ่าน',
+          trap: '⚠️ กับดัก: อย่าตอบว่า “Frontend ส่ง username/password ไปให้ Backend ตรวจ” เพราะผิดหลัก TR-04 เต็ม ๆ!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “ทำไมต้องใส่ <code>pkceMethod: \'S256\'</code> และทำไมต้องใส่ <code>checkLoginIframe: false</code>? ถ้าลบสองบรรทัดนี้ออกจะเกิดอะไรขึ้น?”',
+          a: '<ul><li><b><code>pkceMethod: "S256"</code> (Proof Key for Code Exchange):</b> เพราะ Frontend เป็น Public Client (ไม่มี client_secret เก็บเป็นความลับได้) PKCE จึงสร้าง <code>code_verifier</code> แบบสุ่มแล้วแฮชด้วย SHA-256 ส่งไปตอนขอ code เพื่อกันคนดักขโมย authorization code ไปแลก token — ถ้าลบออก <b>Keycloak ของวิชาจะปฏิเสธการล็อกอินทันที</b> เพราะ client บังคับ PKCE</li><li><b><code>checkLoginIframe: false</code>:</b> ปกติ <code>keycloak-js</code> จะสร้าง iframe ลับเช็คสถานะ session ผ่าน third-party cookie แต่เบราว์เซอร์ยุคใหม่บล็อก third-party cookie ทำให้ <code>init()</code> timeout หรือเด้งออกเอง จึงต้องปิดไว้</li></ul>',
+          kw: '🎯 คีย์เวิร์ด: Public Client ไม่มี client_secret · SHA-256 code_challenge · Third-party cookie blocked',
+          trap: '⚠️ กับดัก: อย่าตอบว่า PKCE เอาไว้เข้ารหัส password — PKCE ป้องกันการขโมย authorization code ในขั้นตอน redirect!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “ใน <code>auth.js</code> คุณเอา <code>keycloak.js</code> มาจากไหน ทำไมไม่ใช้ <code>import Keycloak from \'keycloak-js\'</code> ตรง ๆ และตอน <code>signOut()</code> ทำไมต้องเขียน <code>new URL(\'./\', location.href).href</code>?”',
+          a: '<ul><li><b>ทำไมใส่ใน <code>js/vendor/</code>:</b> เพราะเราใช้ <b>Plain ES Modules ไม่มี Bundler (Webpack/Vite)</b> เบราว์เซอร์ไม่รู้จัก bare specifier แบบ <code>"keycloak-js"</code> (ต้องมี path ที่ขึ้นต้นด้วย <code>./</code> หรือ URL) จึง copy <code>keycloak.js</code> + <code>deprecations.js</code> จาก <code>node_modules/keycloak-js/lib/</code> มาวางใน <code>./vendor/</code></li><li><b>ทำไมใช้ <code>new URL(\'./\', location.href).href</code>:</b> เพื่อถอยจาก <code>.../my-schedule.html</code> ไปที่หน้าแรกในโฟลเดอร์เดียวกัน (<code>.../intproj26/&lt;TEAM-PATH&gt;/</code>) ซึ่งใช้ได้ทั้งบน localhost และ VM จริง ต่างจาก <code>"/"</code> ที่จะเด้งไป root ของ <code>bscit.sit.kmutt.ac.th</code></li></ul>',
+          kw: '🎯 คีย์เวิร์ด: Native ES Modules ไม่มี Bundler · Relative URL resolver · ใช้ได้ทั้ง localhost และ subfolder บน VM',
+          trap: '⚠️ กับดัก: ถ้าลืม copy <code>deprecations.js</code> มาคู่กับ <code>keycloak.js</code> เบราว์เซอร์จะ 404 เพราะ <code>keycloak.js</code> import มันอยู่ภายใน!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ใน <code>my-schedule.html</code> ปุ่ม <code>Sign Out</code> มี attribute <code>disabled</code> ไว้ตั้งแต่แรก แล้วมาเปิด <code>signOutBtn.disabled = false</code> ใน <code>my-schedule-main.js</code> ทำไม? และถ้ามีคนกดเข้า <code>index.html</code> มันจะโหลด <code>vendor/keycloak.js</code> ไหม?”',
+          a: '<ul><li><b>ทำไม <code>disabled</code> ไว้ก่อน:</b> เพื่อกันผู้ใช้กด Sign Out ระหว่างที่ <code>await requireSignIn()</code> ยัง init ไม่เสร็จ (ถ้ากดตอน <code>keycloak</code> ยังไม่พร้อมอาจ error หรือ logout ไม่สมบูรณ์)</li><li><b>เจาะลึกโค้ดจริงของทีมเรื่อง <code>index.html</code>:</b> ใน Sprint 3 ไฟล์ <code>modal.js</code> มี <code>import { signOutToCurrentPage } from "../auth.js"</code> ซึ่ง <code>main.js</code> ของหน้าแรกก็ import <code>modal.js</code> ด้วย — แปลว่าเบราว์เซอร์ <i>โหลดไฟล์</i> <code>auth.js</code> เข้ามาในโมดูลกราฟ <b>แต่ไม่ถือว่าผิด PBI3</b> เพราะไม่มีการเรียก <code>keycloak.init()</code> เลย ไม่มี HTTP request ใด ๆ วิ่งไป Keycloak จากหน้าแรก (แต่ถ้าอยากสะอาด 100% ควรแยก <code>showSessionModal</code> ไปไว้ไฟล์เฉพาะของ <code>my-schedule.html</code>)</li></ul>',
+          kw: '🎯 คีย์เวิร์ด: ป้องกัน race condition ก่อน init เสร็จ · โหลด module ≠ เรียก init() (Zero network call to Keycloak)',
+          trap: '⚠️ กับดัก: จุด <code>modal.js → auth.js</code> คือคำถามปราบเซียนที่พิสูจน์ว่าเราอ่าน import graph ของตัวเองจริง!'
+        }
+      ]
+    },
+    {
+      title: 'ชุดที่ 2: ลำดับการโหลด 3 API &amp; Error Handling ใน <code>my-schedule-main.js</code>',
+      badges: ['PBI 4', 'my-schedule-main.js', 'my-schedule-api.js'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “พอ Student ล็อกอินเข้ามา หน้า <code>my-schedule.html</code> ยิง API กี่เส้น อะไรบ้าง และยิงตามลำดับยังไง?”',
+          a: 'ยิงทั้งหมด <b>3 เส้น</b> แค่อย่างละ 1 ครั้งต่อ page load:<br>1) <code>GET /api/v1/students/{id}</code> (ต้องยิงก่อนและ <code>await</code> ให้เสร็จ)<br>2) <code>GET /api/v1/year-levels/{yearLevel}/schedules?studentGroup={group}</code><br>3) <code>GET /api/v1/students/{id}/selections</code><br>โดยเส้นที่ 2 และ 3 ยิงพร้อมกันด้วย <code>Promise.all([...])</code> หลังจากเส้นที่ 1 สำเร็จ',
+          kw: '🎯 คีย์เวิร์ด: Sequential (เส้น 1) → Parallel ด้วย Promise.all (เส้น 2+3) · อย่างละ 1 ครั้ง (TR-06)',
+          trap: '⚠️ กับดัก: ห้ามตอบว่ายิงพร้อมกันทั้ง 3 เส้น เพราะเส้น 2 ต้องเอา <code>yearLevel</code> กับ <code>studentGroup</code> จากเส้น 1 มาต่อ URL!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “ถ้าผู้ใช้ที่ล็อกอินเป็นนักศึกษาต่างหลักสูตร เช่น <code>69130500010</code> แล้วเส้นที่ 1 ตอบ <code>404</code> โค้ดคุณแยก 404 ออกจาก 500 ยังไง?”',
+          a: 'ใน <code>my-schedule-api.js</code> ฟังก์ชัน <code>fetchStudentProfile()</code> เช็ค <code>if (response.status === 404) return null;</code> เป็นกรณีพิเศษ (ไม่ throw Error) ส่วนถ้าเป็น status อื่นที่ <code>!response.ok</code> เช่น 500 จะ <code>throw error</code> → กลับมาที่ <code>my-schedule-main.js</code> ถ้า <code>!profile</code> จะเรียก <code>showNotStudentMessage()</code> แล้ว <code>return false</code> (หยุดทันที ไม่ยิงเส้น 2–3) แต่ถ้า throw จะไปเข้า <code>catch</code> แล้วเปิด <code>showErrorModal()</code> (PBI1 fatal error dialog)',
+          kw: '🎯 คีย์เวิร์ด: 404 คืน null (Business case ที่คาดไว้) vs 5xx/Network throw Error (Fatal error)',
+          trap: '⚠️ กับดัก: อย่าลืมว่า <code>fetch()</code> ของ JS <b>ไม่ throw error เมื่อได้ 404 หรือ 500</b> ต้องเช็ค <code>response.ok</code> เอง!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “ทำไมในโค้ดถึงเรียก <code>renderStudentHeader(user.name, null)</code> ตอนต้น แล้วค่อยมาเรียก <code>renderStudentHeader(user.name, studentProfile)</code> อีกรอบหลังโหลดตารางเสร็จ?”',
+          a: 'ดูจาก commit <code>e24cf7d</code>: 1) ตอนต้นเรารู้ <code>user.name</code> จาก JWT ทันที จึงแสดงชื่อเต็มทันที (ส่ง <code>null</code> เพื่อซ่อน <code>student-profile</code> ไว้ก่อน)<br>2) แต่ถ้าเกิด Error ระหว่างโหลด <code>schedules</code> หรือ <code>selections</code> (เช่น เส้น 2 ตอบ 500) หน้าเว็บควรโชว์ Error Modal โดย <b>ไม่โชว์โปรไฟล์ค้างไว้แบบครึ่ง ๆ กลาง ๆ</b> การรอให้ทั้ง 3 เส้นโหลดผ่านครบแล้วค่อย <code>renderStudentHeader(user.name, studentProfile)</code> ทำให้ UI สอดคล้องกันทั้งหน้า',
+          kw: '🎯 คีย์เวิร์ด: Progressive header (name ทันทีจาก token) + Atomic UI reveal หลังโหลดครบ 3 API',
+          trap: '⚠️ กับดัก: ถ้าโชว์ <code>Year 2 · Group A</code> ตั้งแต่เส้น 1 จบ แล้วเส้น 2 พัง จะเห็นโปรไฟล์ลอยอยู่หลัง Error Dialog'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ใน <code>Promise.all([fetchYearSchedules, fetchStudentSelections])</code> ถ้าเส้นที่ 2 สำเร็จ (200) แต่เส้นที่ 3 พัง (500) จะเกิดอะไรขึ้น? และ <code>Promise.all</code> ต่างจาก <code>Promise.allSettled</code> ยังไง?”',
+          a: '<code>Promise.all</code> เป็นแบบ <b>Fail-fast</b>: แค่ตัวใดตัวหนึ่ง reject มันจะ throw error ออกไปเข้า <code>catch</code> ทันที → แสดง <code>showErrorModal()</code> ไม่วาดตารางที่ข้อมูลไม่ครบ (เพราะถ้าวาดตารางโดยไม่มี <code>selections</code> นักศึกษาจะเห็นวิชาที่ตัวเองเลือกไปแล้วไปโผล่อยู่ใน Courses to Choose!)<br>ส่วน <code>Promise.allSettled</code> จะรอทุกตัวจบแล้วคืน <code>{ status: "fulfilled"|"rejected" }</code> ซึ่งเหมาะเมื่อยอมให้แสดงผลบางส่วนได้ แต่กรณีนี้เราต้องการข้อมูลครบทั้งคู่จึงเลือก <code>Promise.all</code> ถูกต้องแล้ว',
+          kw: '🎯 คีย์เวิร์ด: Fail-fast · ป้องกัน Partial State ที่ทำให้ 2 ตารางแสดงข้อมูลผิดความจริง',
+          trap: '⚠️ กับดัก: อย่าตอบว่า “Promise.all จะยกเลิก HTTP request ที่กำลังวิ่งอยู่” — มันแค่ reject เร็วขึ้น แต่ไม่ได้ abort request อัตโนมัติ (ถ้าจะ abort ต้องใช้ <code>AbortController</code>)'
+        }
+      ]
+    },
+    {
+      title: 'ชุดที่ 3: “The Page Computes Nothing” &amp; กฎ <code>fixed</code> + <code>studentGroup: null</code>',
+      badges: ['PBI 4', 'year-level.service.js', 'my-schedule-renderer.js'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “หน้าเว็บแยกได้ยังไงว่าวิชาไหนเป็นวิชาบังคับ (Fixed) ที่ห้ามลบ กับวิชาไหนที่ต้องเอาไปใส่ใน Courses to Choose?”',
+          a: 'หน้าเว็บ <b>ไม่ได้คำนวณเองเลย</b> — Backend (<code>year-level.service.js</code>) เป็นคนตัดสินใจแล้วส่ง boolean <code>fixed: true</code> หรือ <code>fixed: false</code> แนบมาในทุกแถวของ <code>GET /api/v1/year-levels/{n}/schedules</code> หน้าเว็บแค่อ่านค่า <code>if (item.fixed)</code> ใน <code>renderStudentTables()</code>',
+          kw: '🎯 คีย์เวิร์ด: Single Source of Truth อยู่ฝั่ง Backend · The page computes nothing',
+          trap: '⚠️ กับดัก: ห้ามตอบว่า “หน้าเว็บเช็ค <code>item.course.type === \'CORE\'</code>” เพราะวิชา CORE ที่มีหลาย section อย่าง LNG202 ไม่ใช่ fixed!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “แล้วถ้าอาจารย์ถามเจาะต่อว่า Backend ใช้กฎอะไรตัดสิน <code>fixed: true/false</code> ล่ะ? ไล่มาครบทั้ง 4 กรณี”',
+          a: 'ดูใน <code>isFixedSchedule(row, sectionCount)</code>:<br>1) <code>ELECTIVE</code> → <code>fixed = false</code> เสมอ (เลือกได้)<br>2) <code>CORE</code> + มี <code>studentGroup</code> (A หรือ B) → <code>fixed = true</code> (เช่น INT144)<br>3) <code>CORE</code> + <code>studentGroup === null</code> + มีแค่ <b>1 section</b> → <code>fixed = true</code> (เช่น INT504)<br>4) <code>CORE</code> + <code>studentGroup === null</code> + มี <b>มากกว่า 1 section</b> → <code>fixed = false</code> (เช่น LNG202 sec 7–10)',
+          kw: '🎯 คีย์เวิร์ด: นับจำนวน section ไม่ซ้ำต่อวิชาด้วย Map&lt;courseId, Set&lt;section&gt;&gt; · 4 กรณีครบ',
+          trap: '⚠️ กับดัก: อย่าลืมว่า 1 section ที่เรียน 2 วัน (2 แถวใน DB) นับเป็น <b>1 section</b> ไม่ใช่ 2! จึงต้องใช้ <code>Set</code> นับ section ไม่ใช่ <code>.length</code> ของแถว!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “ตอน Frontend เรียก <code>?studentGroup=A</code> ทำไมวิชา INT504 (ซึ่ง <code>studentGroup</code> เป็น <code>null</code>) ถึงยังโผล่มาใน My Schedule ของ Group A ได้?”',
+          a: 'เพราะ Backend กรองด้วยเงื่อนไข <code>!item.fixed || item.studentGroup === studentGroup || item.studentGroup === null</code> — คือเก็บวิชาเลือกทุกตัว (<code>!item.fixed</code>) และเก็บวิชาบังคับที่ตรงกลุ่ม A <b>หรือเป็น <code>null</code></b> (เรียนรวมทั้ง 2 กลุ่ม) ถ้าเขียน SQL แค่ <code>WHERE student_group = \'A\'</code> ค่า <code>NULL = \'A\'</code> จะเป็น UNKNOWN/false แล้ว INT504 จะหายไปจากทุกคน!',
+          kw: '🎯 คีย์เวิร์ด: SQL Three-valued logic (NULL = \'A\' ไม่เป็น true) · เรียนรวมต้องเก็บ studentGroup === null',
+          trap: '⚠️ กับดัก: เป็นจุดที่อาจารย์เน้นในสไลด์ Sprint 2 หน้า 12 และ 28 — ออกปากเปล่าบ่อยมาก!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ใน UI Test (<code>--project=ui</code>) ที่ API ถูก Stub ทำไมกฎ ‘หน้าเว็บไม่คำนวณเอง’ ถึงสำคัญต่อการผ่าน Test?”',
+          a: 'เพราะใน Playwright UI test ตัว test สามารถส่งข้อมูลจำลอง (stub) ที่กำหนด <code>yearLevel</code>, <code>studentGroup</code> หรือ <code>fixed</code> อย่างไรก็ได้ไม่ตรงกับสูตรจริง เพื่อเช็คว่า Frontend เชื่อข้อมูลจาก API จริงหรือไม่ — ถ้า Frontend แอบคำนวณรหัส 11 หลักเองหรือแอบคำนวณ <code>fixed</code> เอง ค่าที่โชว์จะไม่ตรงกับ stub แล้วตก test ทันที!',
+          kw: '🎯 คีย์เวิร์ด: Decoupling FE/BE · Mocked API contract ใน --project=ui',
+          trap: '⚠️ กับดัก: หลายคนนึกว่า “ทำเผื่อไว้บน FE ด้วยก็ดี” แต่จริง ๆ มันขัด Contract และทำให้ UI test พัง!'
+        }
+      ]
+    },
+    {
+      title: 'ชุดที่ 4: กลไกแยก 2 ตาราง &amp; การรักษาลำดับ PBI1 โดยไม่ Sort ซ้ำ',
+      badges: ['PBI 4–5', 'my-schedule-renderer.js'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “อธิบายโค้ด <code>renderStudentTables()</code> หน่อยว่าแปลง array <code>schedules</code> กับ <code>selections</code> เป็น 2 ตารางยังไง?”',
+          a: 'สร้าง 2 array จาก <code>schedules</code>:<br>• <b><code>myScheduleRows</code>:</b> เอาแถวที่ <code>item.fixed === true</code> หรือตรงกับ <code>selections</code> ทั้ง <code>courseId</code> <b>และ</b> <code>section</code><br>• <b><code>courseOptionRows</code>:</b> เอาแถวที่ <code>!item.fixed</code> และยังไม่มี <code>sel.courseId === item.course.id</code> อยู่ใน <code>selections</code><br>จากนั้นล้าง <code>tbody.innerHTML = ""</code> แล้ววนลูปสร้าง <code>&lt;tr&gt;</code> ใส่แต่ละตาราง',
+          kw: '🎯 คีย์เวิร์ด: Derived View จาก State เดียว (schedules + selections) · ตารางบนเช็ค courseId+section · ตารางล่างเช็คแค่ courseId',
+          trap: '⚠️ กับดัก: ถ้าตารางล่างเผลอเช็ค <code>section</code> ด้วย section อื่นของวิชาที่เลือกแล้วจะค้างอยู่ใน Courses to Choose!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “พอนักศึกษากด Select (ได้ 201) หรือ Remove (ได้ 204) โค้ดคุณไม่ได้เรียก <code>sortSchedules()</code> บน Frontend เลย แล้วทำไมแถวที่ย้ายเข้า My Schedule หรือย้ายกลับ Courses to Choose ถึงยังเรียงตามลำดับ PBI1 เป๊ะ?”',
+          a: 'เพราะ array ต้นทาง <code>schedules</code> ที่ดึงมาจาก Backend <b>ถูกเรียงลำดับ 6 ขั้นตาม PBI1 มาเรียบร้อยแล้วตั้งแต่แรก</b> และ <code>Array.prototype.filter()</code> ของ JavaScript <b>รักษาลำดับเดิมของสมาชิก (order-preserving)</b> เสมอ! ดังนั้นไม่ว่า <code>selections</code> จะถูก push เข้าท้ายสุดยังไง พอเราเอา <code>schedules.filter(...)</code> มาสร้างตารางใหม่ ลำดับแถวจะยังคงตรง PBI1 ตลอดเวลา!',
+          kw: '🎯 คีย์เวิร์ด: schedules เรียงมาจาก Backend แล้ว · Array.filter() รักษาลำดับเดิม (Order-preserving)',
+          trap: '⚠️ กับดัก: ถ้าใครเขียนแบบ “appendChild แถวใหม่ต่อท้าย tbody ตรง ๆ” แถวจะไปอยู่ล่างสุด ผิดลำดับ PBI1 ทันที!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “ตอน <code>myScheduleRows.length === 0</code> กับ <code>courseOptionRows.length === 0</code> หน้าเว็บแสดงผลต่างกันยังไง?”',
+          a: '<ul><li><b>My Schedule ว่าง:</b> ยังคงแสดง <code>&lt;section id="my-schedule-section"&gt;</code> และหัวตาราง พร้อมโชว์ข้อความ <code>my-schedule-empty</code> (“No classes yet. Choose from Courses to Choose.”)</li><li><b>Courses to Choose ว่าง:</b> ซ่อนทั้ง <code>&lt;section id="course-options-section"&gt;</code> (<code>display = "none"</code>) รวมทั้งหัวข้อ <code>&lt;h2&gt;</code> และตาราง โดย <b>ไม่มีข้อความแทน</b></li></ul>',
+          kw: '🎯 คีย์เวิร์ด: My Schedule แสดง empty message · Courses to Choose ซ่อนทั้ง section',
+          trap: '⚠️ กับดัก: Playwright ใช้ <code>toBeHidden()</code> เช็คทั้งหัวข้อและตารางของ Courses to Choose — ถ้าซ่อนแค่ <code>&lt;table&gt;</code> แต่เหลือ <code>&lt;h2&gt;</code> ไว้จะตก test!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ใน <code>renderStudentTables()</code> แถวที่เลือกเองมีการ append คอลัมน์ปุ่ม (<code>tdAction</code>) เพิ่มเข้าไป แต่แถว Fixed ไม่ได้ append <code>tdAction</code> — แล้ว <code>&lt;thead&gt;</code> มี 11 คอลัมน์ ข้อนี้มีผลอะไรกับ UI Contract หรือการจัดตารางไหม?”',
+          a: 'Playwright ตรวจเซลล์ด้วย <code>data-testid</code> (<code>code</code>..<code>remarks</code>) และหาปุ่มด้วย <code>getByRole("button", { name: "Remove" })</code> ภายในแถว <code>schedule-row</code> จึงผ่าน UI Contract ครบทุกข้อ เพราะแถว Fixed ไม่มีปุ่ม Remove/Change ส่วนในแง่ HTML table layout เบราว์เซอร์จะขยายความกว้างตารางรองรับ <code>&lt;td&gt;</code> ที่ 12 อัตโนมัติ (ถ้าอยากให้เส้นขอบตารางเนี๊ยบเป๊ะทุกแถว สามารถใส่ <code>&lt;th&gt;&lt;/th&gt;</code> เปล่า 1 ช่องใน <code>&lt;thead&gt;</code> และใส่ <code>&lt;td&gt;&lt;/td&gt;</code> เปล่าให้แถว Fixed ได้ โดยไม่กระทบ test)',
+          kw: '🎯 คีย์เวิร์ด: Test ตรวจผ่าน data-testid + ARIA role · การวาง tdAction แยกเฉพาะแถวที่เลือกเอง',
+          trap: '⚠️ กับดัก: ห้ามใส่ <code>data-testid</code> มั่วลงบน <code>tdAction</code> และห้ามใส่ปุ่ม Remove ที่ซ่อนไว้แบบยังคลิกได้บนแถว Fixed!'
+        }
+      ]
+    },
+    {
+      title: 'ชุดที่ 5: Select Section — Optimistic Local State (201) vs Re-sync (409/404)',
+      badges: ['PBI 5', 'my-schedule-main.js', 'my-schedule-api.js'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “ไล่การทำงานตอนนักศึกษากดปุ่ม Select ให้ฟังหน่อย — ยิงอะไร ส่ง body อะไร และได้ 201 แล้วทำอะไรต่อ?”',
+          a: 'ปุ่ม Select ผูก event เรียก <code>handleSelect(item.course.id, item.section)</code> โดย <b>ไม่ถามยืนยันก่อน</b> → เรียก <code>selectCourseSection()</code> ยิง <code>POST ./api/v1/students/{id}/selections</code> พร้อม header <code>Content-Type: application/json</code> และ body <code>{ courseId, section }</code><br>พอได้ <code>201 Created</code> จะเอา <code>result.data</code> มา <code>selections.push(...)</code> แล้วเรียก <code>renderStudentTables()</code> วาด 2 ตารางใหม่ทันทีโดยไม่ reload หน้า',
+          kw: '🎯 คีย์เวิร์ด: No confirmation · POST JSON { courseId, section } · Local state update ไม่ reload ไม่ refetch',
+          trap: '⚠️ กับดัก: อย่าลืมว่าต้องเป็น <code>POST</code> (ไม่ใช่ PUT) และได้ status <code>201</code> (ไม่ใช่ 200)'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “ทำไมตอนได้ <code>409 Conflict</code> (already-selected) ถึงยอมให้ยิง <code>GET .../selections</code> อีกรอบได้ แต่ห้ามยิง <code>GET .../year-levels/.../schedules</code>?”',
+          a: 'เพราะ <code>409</code> หมายความว่า “สถานะการเลือกวิชา (<code>selections</code>) ของหน้าเว็บเราไม่ตรงกับฐานข้อมูลแล้ว” (เช่น นักศึกษาเปิด 2 แท็บแล้วไปกดเลือกอีกแท็บมาก่อน) จึงจำเป็นต้องยิง <code>fetchStudentSelections(studentId)</code> เพื่อซิงก์รายการที่เลือกใหม่ให้ตรงความจริง<br>แต่ตารางเรียนของหลักสูตร (<code>schedules</code>) ไม่ได้เปลี่ยน จึงไม่จำเป็นต้องยิง <code>fetchYearSchedules</code> ซ้ำ (ประหยัดและตรง TR-06)',
+          kw: '🎯 คีย์เวิร์ด: Stale client state · Re-sync เฉพาะ selections ไม่แตะ schedules',
+          trap: '⚠️ กับดัก: หลายคนเผลอเรียก <code>initMySchedule()</code> ใหม่หมดซึ่งจะยิงซ้ำทั้ง 3 เส้น (และ init Keycloak ซ้ำจนพัง!)'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “ลองดูโค้ด <code>handleSelect()</code> ตอนรับ 409: ทำไมต้องส่งฟังก์ชัน <code>refreshSelections</code> เข้าไปเป็นพารามิเตอร์ตัวที่ 2 <b>และ</b> ตัวที่ 4 ของ <code>showMessageDialog()</code>?”',
+          a: 'ดู signature: <code>showMessageDialog(message, onClose, isConfirm = false, onCancel = null)</code><br>• พารามิเตอร์ตัวที่ 2 (<code>onClose</code>) ทำงานตอนผู้ใช้กดปุ่ม <b>OK</b><br>• พารามิเตอร์ตัวที่ 4 (<code>onCancel</code>) ทำงานตอนผู้ใช้กดปุ่ม <b>Esc</b> (<code>dialog.oncancel</code>)<br>ตามสเปก PBI5: “OK or Esc closes it; the page then reads the selections again and updates both tables.” การส่ง <code>refreshSelections</code> ให้ทั้ง 2 ช่องจึงรับประกันว่าไม่ว่าจะปิดด้วย OK หรือ Esc หน้าเว็บจะซิงก์ข้อมูลใหม่เสมอ!',
+          kw: '🎯 คีย์เวิร์ด: ทั้ง OK และ Esc ต้อง trigger refreshSelections · dialog.oncancel',
+          trap: '⚠️ กับดัก: ถ้าดักแค่ <code>okBtn.onclick</code> แต่ลืม <code>dialog.oncancel</code> เคสกด Esc ใน Playwright จะไม่ยอมยิง GET selections!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ใน <code>handleSelect()</code> ถ้าผู้ใช้กดปุ่ม Select รัว ๆ 2 ครั้งติดกันก่อน request แรกจะตอบกลับมา จะเกิดอะไรขึ้น และป้องกันยังไงได้บ้าง?”',
+          a: 'ถ้าไม่มีการล็อกปุ่ม request แรกจะได้ <code>201</code> แต่ request ที่สองจะชนข้อมูลที่เพิ่ง insert แล้วได้ <code>409 already-selected</code> เด้ง dialog ฟ้องทั้งที่ผู้ใช้เพิ่งกดเอง!<br><b>วิธีป้องกัน:</b> disable ปุ่ม <code>selectBtn.disabled = true</code> ทันทีที่คลิก (หรือใช้ตัวแปร <code>isBusy</code> แบบที่ทีมทำไว้กับปุ่มเปลี่ยนสัปดาห์ใน PBI12) แล้วค่อยปลดล็อกใน <code>finally</code>',
+          kw: '🎯 คีย์เวิร์ด: Double-submit / Race condition · Button disable หรือ isBusy lock + finally',
+          trap: '⚠️ กับดัก: การตอบเคส Race condition พร้อมวิธีแก้จะทำให้อาจารย์ประทับใจมาก!'
+        }
+      ]
+    },
+    {
+      title: 'ชุดที่ 6: Remove Selection &amp; กลไก <code>&lt;dialog&gt;</code> + Event Listener',
+      badges: ['PBI 6', 'my-schedule-renderer.js', 'my-schedule.html'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “อธิบายความต่างของ Flow ระหว่างกดปุ่ม Select กับกดปุ่ม Remove — ทำไม Remove ถึงต้องมี Dialog ถามยืนยันก่อน?”',
+          a: 'การ Remove เป็น Destructive Action (ลบข้อมูล) ตาม PBI6 จึงต้องเปิด <code>&lt;dialog id="message-dialog"&gt;</code> ถามก่อนว่า <code>"Remove {code} {title} section {section}?"</code> พร้อมปุ่ม <b>Remove</b> และ <b>Cancel</b><br>• ถ้ากด Cancel หรือ Esc → ปิด dialog ไม่ยิง API อะไรเลย<br>• ถ้ากด Remove → ยิง <code>DELETE ./api/v1/students/{id}/selections/{courseId}</code> พอได้ <code>204 No Content</code> ก็ทำ <code>selections = selections.filter(sel =&gt; sel.courseId !== courseId)</code> แล้ววาด 2 ตารางใหม่ ทุก section ของวิชานั้นจะกลับมาโผล่ใน Courses to Choose',
+          kw: '🎯 คีย์เวิร์ด: Destructive action confirmation · DELETE → 204 No Content · Array.filter() ลบออกจาก state',
+          trap: '⚠️ กับดัก: <code>204 No Content</code> <b>ไม่มี response body!</b> ห้ามเรียก <code>await response.json()</code> หลัง DELETE 204 ไม่งั้นจะ throw SyntaxError!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “ทำไมใน <code>my-schedule.html</code> มี <code>&lt;dialog id="message-dialog"&gt;</code> แค่อันเดียว แต่ใช้ได้ทั้งเป็น Message Alert (ปุ่ม OK) และ Remove Confirm (ปุ่ม Remove/Cancel)?”',
+          a: 'ใน <code>showMessageDialog(message, onClose, isConfirm = false, onCancel = null)</code> ใช้ flag <code>isConfirm</code> สลับการแสดงผลปุ่มทั้ง 3 ปุ่มใน dialog เดียว:<br>• ถ้า <code>isConfirm === false</code> → โชว์ <code>okBtn</code>, ซ่อน <code>confirmBtn</code> และ <code>cancelBtn</code><br>• ถ้า <code>isConfirm === true</code> → ซ่อน <code>okBtn</code>, โชว์ <code>confirmBtn</code> (“Remove”) และ <code>cancelBtn</code> (“Cancel”)',
+          kw: '🎯 คีย์เวิร์ด: Reusable modal dialog component · สลับปุ่มด้วย isConfirm flag',
+          trap: '⚠️ กับดัก: ต้องระวังเรื่อง <code>dialog.oncancel</code> — ตอนเป็น Confirm (<code>isConfirm=true</code>) กด Esc ต้องเรียก <code>onCancel</code> (ไม่ลบ!) ห้ามไปเรียก <code>onClose</code> (ฟังก์ชันลบ)!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “ใน <code>showMessageDialog()</code> ทำไมทีมเขียน <code>confirmBtn.onclick = () =&gt; ...</code> แทนที่จะใช้ <code>confirmBtn.addEventListener(\'click\', ...)</code>?”',
+          a: 'เพราะ <code>message-dialog</code> เป็น DOM element เดิมที่ถูกนำมาใช้ซ้ำทุกครั้งที่เปิด! การกำหนด property <code>.onclick = ...</code> จะ <b>เขียนทับ (overwrite)</b> handler ของรอบก่อนทิ้งทันที<br>ถ้าไปใช้ <code>addEventListener</code> ทุกครั้งที่เปิด dialog โดยไม่ <code>removeEventListener</code> จะเกิด <b>Listener สะสม</b>: พอลบวิชาที่ 2 มันจะไปรันคำสั่งลบวิชาที่ 1 ซ้ำด้วยจนยิง DELETE เกินและได้ 404!',
+          kw: '🎯 คีย์เวิร์ด: Overwrite handler vs Listener accumulation (Memory/Event leak)',
+          trap: '⚠️ กับดัก: นี่คือคำถามคลาสสิกของ Vanilla JS เวลาใช้ Modal ซ้ำ — ตอบได้คือเข้าใจ DOM จริง ๆ!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ใน Remove dialog ทำไมถึงเห็นข้อความ <code>event.preventDefault(); dialog.close();</code> ใน <code>dialog.oncancel</code> ด้วย? ในเมื่อปกติกด Esc มันก็ปิด dialog อยู่แล้วไม่ใช่เหรอ?”',
+          a: 'ปกติกด Esc จะยิง event <code>cancel</code> แล้วปิด <code>&lt;dialog&gt;</code> ให้เอง แต่การเขียน <code>event.preventDefault(); dialog.close();</code> ทำให้เราควบคุมลำดับได้ชัดเจน 100% ว่าจะปิด dialog <i>ก่อน</i> เรียก <code>cancelHandler()</code> (เช่น <code>refreshSelections()</code> ที่อาจต้องเปิด dialog ใหม่ถ้าเกิด error — ถ้า dialog เก่ายังเปิดค้างอยู่จะเกิด <code>InvalidStateError</code> เมื่อเรียก <code>showModal()</code> ซ้ำ!)',
+          kw: '🎯 คีย์เวิร์ด: Deterministic close order · ป้องกัน InvalidStateError ตอนเรียก showModal() ซ้อน',
+          trap: '⚠️ กับดัก: ถ้าระหว่าง <code>refreshSelections()</code> เกิด error แล้วจะเปิด dialog ใหม่ แต่ dialog เก่ายัง <code>open === true</code> จะ error หรือข้อความทับกัน!'
+        }
+      ]
+    },
+    {
+      title: 'ชุดที่ 7: Change Section — <code>Map</code> Deduplication, Radio State &amp; Type Safety',
+      badges: ['PBI 7', 'my-schedule-main.js', 'my-schedule-renderer.js'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “อธิบายเงื่อนไขที่ปุ่ม <code>Change</code> จะปรากฏ และการทำงานของ <code>change-dialog</code> ทีละขั้น”',
+          a: '1) แสดงปุ่ม <code>Change</code> เฉพาะแถวที่นักศึกษาเลือกเอง <b>และ</b> วิชานั้นมี section ที่ไม่ซ้ำมากกว่า 1 section (<code>availableSections.length &gt; 1</code>)<br>2) กดปุ่ม → เปิด <code>&lt;dialog id="change-dialog"&gt;</code> ล้างตัวเลือกเก่า, ตั้ง <code>confirmBtn.disabled = true</code>, สร้าง radio เฉพาะ section อื่นที่ <code>Number(item.section) !== Number(currentSection)</code> เรียงตามเลข section<br>3) เมื่อเลือก radio → ปลด <code>confirmBtn.disabled = false</code><br>4) กด Change → ยิง <code>PUT .../selections/{courseId}</code> ด้วย <code>{ section: newSection }</code> พอได้ <code>200</code> → อัปเดต <code>selections</code> ใน memory ด้วย <code>.map()</code> แล้ว <code>renderStudentTables()</code>',
+          kw: '🎯 คีย์เวิร์ด: availableSections.length &gt; 1 · ปุ่ม Change disabled จนกว่าจะเลือก radio · PUT → 200',
+          trap: '⚠️ กับดัก: อย่าลืมว่าวิชา <b>Elective</b> ที่มีมากกว่า 1 section (เช่น INT531) ก็ต้องมีปุ่ม Change ด้วย (TC-PBI7-12)!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “ทำไมใน <code>handleChange()</code> ต้องเขียน <code>new Map(schedules.filter(...).map(s =&gt; [Number(s.section), s])).values()</code> ให้ซับซ้อนด้วย? ใช้ <code>schedules.filter(...)</code> เฉย ๆ ไม่ได้เหรอ?”',
+          a: 'ไม่ได้! เพราะ 1 section อาจเรียนหลายวันต่อสัปดาห์ (เช่น LNG320 sec 8 เรียนทั้งจันทร์และพฤหัส → มี <b>2 แถว</b> ใน <code>schedules</code> ที่มี <code>section: 8</code>) ถ้าใช้ <code>.filter()</code> ตรง ๆ จะได้ radio <code>Section 8</code> โผล่ซ้ำ 2 อัน!<br>การใช้ <code>Map</code> ที่มี key เป็นเลข section (<code>Number(s.section)</code>) จะเก็บแค่ 1 ตัวแทนต่อ 1 section โดยอัตโนมัติ (Deduplication)',
+          kw: '🎯 คีย์เวิร์ด: Multi-day section (1 section หลายแถว) · Deduplicate ด้วย Map key',
+          trap: '⚠️ กับดัก: ถ้าใช้ <code>new Set(schedules)</code> จะไม่ deduplicate เพราะ object 2 ตัวอยู่คนละ memory reference! ต้องใช้ <code>Map</code> key ด้วยเลข section'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “สมมติเดิมนักศึกษาเลือก LNG202 section 9 → กด Change เปลี่ยนเป็น section 10 → แล้วกด Change บนแถว section 10 อีกรอบ (TC-PBI7-7) โค้ดคุณรับประกันยังไงว่า section 9 (ตัวเก่า) จะกลับมาโผล่ใน radio และ section 10 จะหายไป?”',
+          a: 'ดู 2 จุดที่ทำงานร่วมกัน:<br>1) หลัง PUT 200 เราอัปเดต <code>selections</code> เป็น <code>{ ...sel, section: newSection }</code> แล้วเรียก <code>renderStudentTables()</code> <b>วาดแถวใหม่ทั้งหมด</b> ทำให้ปุ่ม Change บนแถวใหม่ผูก callback <code>onChange(item.course.id, item)</code> ที่ถือ <code>item.section = 10</code> (ไม่ใช่ closure เก่าที่จำเลข 9!)<br>2) พอเปิด <code>showChangeDialog(10, availableSections, ...)</code> มันล้าง <code>options.innerHTML = ""</code> แล้วกรอง <code>item.section !== 10</code> จาก <code>schedules</code> ตัวเต็ม (ซึ่งยังมี section 9 อยู่ครบ!) จึงโชว์ 7, 8, 9 และซ่อน 10 ถูกต้อง',
+          kw: '🎯 คีย์เวิร์ด: Re-render สร้าง closure ใหม่ด้วย item.section ปัจจุบัน · กรองสดจาก schedules ตัวเต็ม',
+          trap: '⚠️ กับดัก: ทีมที่ตก TC-PBI7-7 มักจะแก้แค่ข้อความใน <code>&lt;td&gt;</code> โดยไม่สร้างปุ่มใหม่ ทำให้ปุ่ม Change ยังจำ <code>item.section</code> ตัวเก่าอยู่!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ใน <code>showChangeDialog()</code> ถ้าลืมเขียน <code>Number(selected.value)</code> แล้วส่ง <code>selected.value</code> (string) ออกไป จะเกิดอะไรขึ้นทั้งบน Frontend และ Backend?”',
+          a: 'ค่า <code>input.value</code> ใน HTML DOM เป็น <b>String เสมอ</b> (เช่น <code>"10"</code>):<br>• <b>Frontend:</b> ตอนอัปเดต <code>selections</code> จะได้ <code>section: "10"</code> → พอ <code>renderStudentTables()</code> เทียบแบบ strict <code>sel.section === item.section</code> (<code>"10" === 10</code> → <code>false</code>) <b>แถวนั้นจะหายไปจากตาราง My Schedule ทันที!</b><br>• <b>Backend:</b> <code>validateUpdateSelection</code> ตรวจ <code>typeof value === "number"</code> → ปฏิเสธด้วย <b>400 Validation Failed</b>',
+          kw: '🎯 คีย์เวิร์ด: DOM input.value เป็น String เสมอ · Strict equality (===) · JSON number vs string',
+          trap: '⚠️ กับดัก: JavaScript เป็น dynamic typing จึงพลาดเรื่อง <code>"10" !== 10</code> ได้ง่ายมากเวลาอ่านค่าจาก DOM!'
+        }
+      ]
+    },
+    {
+      title: 'ชุดที่ 8: <code>&lt;dialog&gt;</code> มาตรฐาน HTML5, ARIA &amp; UI Contract',
+      badges: ['UI Contract', 'my-schedule.html', 'modal.js'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “ทำไมสเปกห้ามใช้ <code>window.alert()</code> กับ <code>window.confirm()</code> แต่บังคับใช้แท็ก <code>&lt;dialog&gt;</code> แทน?”',
+          a: '1) <code>alert()</code>/<code>confirm()</code> เป็น native popup นอก DOM Tree → Playwright หาด้วย <code>getByRole("dialog")</code> หรือหาปุ่มภายในไม่ได้ และสั่งหยุด JS main thread<br>2) <code>&lt;dialog&gt;</code> เป็น HTML element จริง มี built-in ARIA role เป็น <code>dialog</code>, รองรับ <code>showModal()</code> (ขึ้น Top Layer + มี <code>::backdrop</code> + จัดการ focus), ใส่ radio buttons ได้ และแต่งสไตล์ Liquid Glass ได้',
+          kw: '🎯 คีย์เวิร์ด: Top Layer · Built-in ARIA role="dialog" · ไม่บล็อก JS thread · Playwright ตรวจ DOM ได้',
+          trap: '⚠️ กับดัก: อย่าสับสนระหว่าง <code>dialog.show()</code> (non-modal ไม่มี backdrop) กับ <code>dialog.showModal()</code> (modal จริงที่ Playwright คาดหวัง!)'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “<code>&lt;dialog id="error-dialog" closedby="none"&gt;</code> ต่างจาก <code>&lt;dialog id="message-dialog"&gt;</code> ยังไง? และทำไมต้องเขียนดัก event <code>cancel</code> ใน JS ซ้ำอีก?”',
+          a: '• <code>error-dialog</code> เป็น Fatal Error ของ PBI1/2/4 ที่ <b>ห้ามปิด</b> (ไม่มีปุ่ม, กด Esc ห้ามปิด, คลิกนอกกรอบห้ามปิด — ต้อง refresh เพื่อลองใหม่)<br>• <code>closedby="none"</code> เป็น HTML attribute ใหม่ที่ช่วยกันปิด แต่บางเวอร์ชันของเบราว์เซอร์ยังไม่รองรับเต็มร้อย ทีมจึงใส่ <code>errorDialog.addEventListener("cancel", e =&gt; e.preventDefault())</code> ใน <code>modal.js</code> ดักซ้ำอีกชั้นให้มั่นใจ 100%',
+          kw: '🎯 คีย์เวิร์ด: Defense in depth (HTML closedby="none" + JS cancel preventDefault) · Fatal vs Recoverable dialog',
+          trap: '⚠️ กับดัก: ใน <code>modal.js</code> มีการเรียก <code>addEventListener("cancel", ...)</code> ทุกครั้งที่เรียก <code>showErrorModal()</code> — เพราะ error-dialog ปิดไม่ได้จึงเกิดแค่ครั้งเดียว แต่ถ้าเป็น dialog ที่เปิดซ้ำควรใช้ <code>oncancel =</code> เหมือนใน <code>my-schedule-renderer.js</code>'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “ทำไมข้อความในตารางทุกช่องทีมเลือกใช้ <code>td.textContent = ...</code> แทน <code>td.innerHTML = ...</code>?”',
+          a: 'เพื่อป้องกัน <b>XSS (Cross-Site Scripting)</b>: <code>textContent</code> จะตีความทุกตัวอักษรเป็นข้อความล้วน (Plain text) ไม่ parse เป็นแท็ก HTML — สมมติข้อมูลใน <code>remarks</code> หรือ <code>title</code> มีตัวอักษร <code>&lt;</code>, <code>&gt;</code> หรือ <code>&lt;img onerror=...&gt;</code> จะไม่ถูกนำไปรันเป็นสคริปต์ และยังเร็วกว่า <code>innerHTML</code> เพราะไม่ต้องเรียก HTML parser',
+          kw: '🎯 คีย์เวิร์ด: ป้องกัน XSS · ไม่เรียก HTML parser · แสดงอักขระพิเศษตรงตัว',
+          trap: '⚠️ กับดัก: การใช้ <code>tbody.innerHTML = ""</code> เพื่อ <i>ล้าง</i> ตารางทำได้ปลอดภัยเพราะเป็น string ว่าง (แต่ถ้าจะเนี๊ยบกว่าใช้ <code>tbody.replaceChildren()</code> ก็ได้!)'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ใน <code>renderStudentHeader()</code> ทำไมต้องเขียน <code>\\u00B7</code> แทนที่จะพิมพ์จุดธรรมดา และทำไมต้องใช้ <code>display: none</code> ซ่อน <code>&lt;section&gt;</code> ที่ไม่ใช้แทนที่จะลบออกจาก DOM?”',
+          a: '<ul><li><b><code>\\u00B7</code> (Middle Dot ·):</b> UI Contract ระบุชัดว่าต้องเป็น <code>U+00B7</code> มีเว้นวรรคซ้าย-ขวา (<code>Year 2 · Group A</code>) การเขียน escape <code>\\u00B7</code> ใน JS ทำให้ไม่พลาดไปพิมพ์จุด <code>.</code> หรือ bullet <code>•</code> (<code>U+2022</code>) แทน</li><li><b><code>display: none</code>:</b> ทำให้ Playwright มองว่า element นั้น hidden (ไม่ถูกนับเป็น visible rows ตามกฎ “Hidden rows are not counted”) และเมื่อนักศึกษากด Remove วิชาสุดท้ายออก <code>Courses to Choose</code> ก็สามารถสั่ง <code>display = "block"</code> กลับมาได้ทันทีโดยไม่ต้องสร้างโครงสร้าง <code>&lt;table&gt;&lt;thead&gt;</code> ใหม่ทั้งหมด</li></ul>',
+          kw: '🎯 คีย์เวิร์ด: Exact Unicode U+00B7 · Toggle visibility ไม่ต้องสร้าง &lt;thead&gt; ซ้ำ',
+          trap: '⚠️ กับดัก: <code>visibility: hidden</code> ยังกินพื้นที่และบางครั้ง test ยังเห็นโครงสร้าง ต่างจาก <code>display: none</code> ที่ซ่อนจาก accessibility tree ด้วย!'
+        }
+      ]
+    },
+    {
+      title: 'ชุดที่ 9: <code>my-schedule-api.js</code>, Fetch Mechanics &amp; Environment Routing',
+      badges: ['PBI 4–7', 'my-schedule-api.js', 'serve.json'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “ทำไมทีมถึงแยก <code>my-schedule-api.js</code> ออกจาก <code>my-schedule-main.js</code> และ <code>my-schedule-renderer.js</code>?”',
+          a: 'ยึดหลัก <b>Separation of Concerns (แยกความรับผิดชอบ)</b>:<br>• <code>my-schedule-api.js</code> = คุย HTTP/JSON กับ Backend อย่างเดียว (ไม่รู้จัก DOM)<br>• <code>my-schedule-renderer.js</code> = วาด DOM และคุม <code>&lt;dialog&gt;</code> อย่างเดียว (ไม่รู้จัก fetch)<br>• <code>my-schedule-main.js</code> = ตัวประสานงาน (Orchestrator) ถือ State และผูก 2 ฝั่งเข้าด้วยกัน<br>ข้อดีคือตอน Sprint 3 อัปเกรดจาก <code>fetch</code> เป็น <code>authFetch</code> เราแก้แค่ไฟล์ <code>*-api.js</code> แทบไม่ต้องแตะ renderer เลย!',
+          kw: '🎯 คีย์เวิร์ด: Separation of Concerns · Maintainability · เปลี่ยน transport (fetch → authFetch) ไม่กระทบ UI',
+          trap: '⚠️ กับดัก: อย่าตอบแค่ “จะได้ไฟล์ไม่ยาว” — ต้องชี้ให้เห็นประโยชน์จริงตอนอัปเกรด Sprint 3!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “สังเกตใน <code>my-schedule-api.js</code>: ทำไม <code>fetchYearSchedules()</code> โยน Error (<code>throw error</code>) เมื่อ <code>!response.ok</code> แต่ <code>selectCourseSection()</code> กลับ <code>return { status: response.status, data: null }</code> แทนที่จะ throw?”',
+          a: 'เพราะ <b>ลักษณะการใช้งานต่างกัน!</b><br>• ตอนโหลดหน้า (<code>fetchYearSchedules</code>): status อื่นที่ไม่ใช่ 200 คือพังหมด → throw ให้ <code>catch</code> กลางเปิด Fatal Error Modal ทีเดียวจบ<br>• ตอนกด Action (<code>selectCourseSection</code>, <code>removeCourseSelection</code>, <code>changeCourseSection</code>): status <b>409</b>, <b>404</b>, <b>400</b> ล้วนเป็น <i>Business outcome ที่ต้องแสดงข้อความต่างกัน</i> การคืน <code>{ status, data, ... }</code> ทำให้ <code>handleSelect()</code> เขียน <code>if/else if</code> แยกจัดการแต่ละ status ได้ชัดเจน โดยสงวน <code>catch</code> ไว้สำหรับ Network failure จริง ๆ เท่านั้น',
+          kw: '🎯 คีย์เวิร์ด: Expected HTTP business outcomes (404/409) vs Unexpected fatal/network errors',
+          trap: '⚠️ กับดัก: ถ้า throw ทุก status != 200 จะต้องยัด status/body เข้า custom Error object แล้วไปแกะใน <code>catch</code> ซึ่งยุ่งยากกว่า'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “ทำไมใน <code>my-schedule-api.js</code> เขียน <code>isLocalDev = window.location.port === \'5500\'</code> (ไม่มี <code>5173</code>) ต่างจาก <code>api.js</code> ที่เช็คทั้ง <code>5500 || 5173</code>?”',
+          a: 'ตอนรัน Playwright <code>--project=ui</code> บน <code>http://localhost:5173/</code> ตัวเทสของวิชาจะ intercept/stub เฉพาะ request ที่วิ่งเข้า <b>origin เดียวกัน</b> (<code>./api/v1/...</code>) เพื่อทดสอบ <b>TC-TR-1</b> (ห้ามเรียก API นอก origin ตัวเอง) และจำลองเคส 401/403/404/409 — ถ้าพอร์ต 5173 ไปยิง <code>http://localhost:3000</code> ตรง ๆ ตัว stub จะไม่ทำงานและจะตก TC-TR-1! จึงสงวนพอร์ต <code>5500</code> (Live Server) ไว้สำหรับต่อ Backend จริงบนเครื่อง',
+          kw: '🎯 คีย์เวิร์ด: Same-origin relative path (./api/v1) · Playwright route stubbing · TC-TR-1',
+          trap: '⚠️ กับดัก: หลายทีมเจออาการ “รันมือผ่าน แต่รัน Playwright ui พัง” เพราะเรื่องพอร์ต 5173 นี่แหละ!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ใน <code>my-schedule-main.js</code> บรรทัดล่างสุดทำไมเขียนเช็ค <code>if (document.readyState === \'loading\')</code> แทนที่จะใช้ <code>document.addEventListener(\'DOMContentLoaded\', initMySchedule)</code> เฉย ๆ เหมือนใน <code>main.js</code>?”',
+          a: 'เพราะ <code>&lt;script type="module"&gt;</code> ทำงานแบบ <b>deferred อัตโนมัติ</b> (โหลดขนานแล้วค่อยรันหลัง parse HTML เสร็จ) ซึ่งบางจังหวะตอนที่ module โหลดเสร็จ (โดยเฉพาะเมื่อมี dependency หลายชั้นอย่าง <code>keycloak.js</code>) event <code>DOMContentLoaded</code> อาจ <b>ยิงผ่านไปแล้ว</b> (`readyState` เป็น `"interactive"` หรือ `"complete"` แล้ว)! ถ้าไปรอฟัง event อย่างเดียว <code>initMySchedule()</code> จะไม่มีวันถูกรันเลย การเช็ค <code>readyState === "loading"</code> จึงปลอดภัย 100%',
+          kw: '🎯 คีย์เวิร์ด: ES module is deferred by default · ป้องกัน missed DOMContentLoaded event',
+          trap: '⚠️ กับดัก: เป็นรายละเอียดเล็ก ๆ ที่แสดงถึงความเข้าใจ Browser Lifecycle อย่างลึกซึ้ง!'
+        }
+      ]
+    },
+    {
+      title: 'ชุดที่ 10: ภาพใหญ่ — จาก Sprint 2 สู่ Sprint 3 และแนวทาง Refactor',
+      badges: ['Architecture', 'Sprint 2 → 3', 'Refactoring'],
+      levels: [
+        {
+          q: 'อาจารย์ถาม: “โค้ด Frontend ที่ทำไว้ใน Sprint 2 มีส่วนไหนบ้างที่ต้องกลับมาแก้ไขหรือขยายต่อเมื่อขึ้น Sprint 3?”',
+          a: 'แก้ 4 จุดหลักโดยโครงเดิมยังอยู่ครบ:<br>1) <b>PBI 8:</b> เพิ่มคอลัมน์ <code>Instructor</code> ใน <code>createScheduleRow()</code> และเพิ่มเส้นทาง <code>isLecturer</code> (ตาราง <code>Teaching Schedule</code>)<br>2) <b>PBI 10:</b> เปลี่ยน <code>fetch()</code> ใน <code>my-schedule-api.js</code> เป็น <code>authFetch()</code> (เติม <code>Bearer</code> token + <code>updateToken(30)</code>) และเพิ่มการจับ 401/403 → <code>showSessionModal()</code><br>3) <b>PBI 11:</b> ใน 409 ของ Select/Change แยก <code>schedule-clash</code> ออกจาก <code>already-selected</code> เพื่อเปิด <code>clash-dialog</code> แล้วยิงซ้ำพร้อม <code>acceptClash: true</code><br>4) <b>PBI 12:</b> เพิ่ม <code>sessionsCache.clear()</code> ทุกครั้งที่ Select/Remove/Change สำเร็จ เพื่อไม่ให้ตารางรายสัปดาห์แสดงข้อมูลเก่า!',
+          kw: '🎯 คีย์เวิร์ด: Incremental Evolution · authFetch · 409 type discrimination · Cache invalidation',
+          trap: '⚠️ กับดัก: จุดที่ลืมบ่อยสุดตอนต่อ Sprint 3 คือลืม <code>sessionsCache.clear()</code> หลัง Select/Remove/Change ในโค้ด Sprint 2!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 2: “ทำไมตอน Sprint 2 ลบ/เพิ่ม/เปลี่ยนวิชาแล้วอัปเดตแค่ <code>selections</code> ใน memory แต่พอมี Sprint 3 (PBI 12) กลับต้องไปสั่ง <code>sessionsCache.clear()</code> แทนที่จะแก้ <code>sessionsCache</code> ใน memory เหมือนกัน?”',
+          a: 'เพราะ <code>sessions</code> ของแต่ละสัปดาห์มีเงื่อนไขปฏิทินซับซ้อน (สัปดาห์ไหนสอน/สอบ/วันหยุด และ <code>session.id</code> มาจากฐานข้อมูล) หน้าเว็บไม่สามารถและไม่ควรสร้าง <code>sessions</code> เองตามกฎ “The page computes nothing” ดังนั้นวิธีที่สะอาดและถูกต้องที่สุดคือ <b>Invalidate cache (<code>sessionsCache.clear()</code>)</b> เพื่อให้เมื่อผู้ใช้สลับกลับไปดู Weekly Timetable ค่อยไปดึงสัปดาห์นั้นใหม่จาก Backend 1 ครั้ง',
+          kw: '🎯 คีย์เวิร์ด: Cache Invalidation · ไม่จำลอง calendar/session logic บน Frontend',
+          trap: '⚠️ กับดัก: ถ้าไม่ clear cache พอนักศึกษาเลือกวิชาเพิ่มแล้วสลับไปหน้า Weekly Timetable จะไม่เห็นวิชาใหม่จนกว่าจะกด Refresh!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 3: “ถ้าอาจารย์บอกว่า <code>my-schedule-main.js</code> (556 บรรทัด) กับ <code>my-schedule-renderer.js</code> (510 บรรทัด) เริ่มยาวไปแล้ว คุณจะ Refactor แบ่งไฟล์ยังไงให้โค้ดอ่านง่ายขึ้นโดยไม่พัง Test?”',
+          a: 'แยกตามความรับผิดชอบย่อย:<br>1) แยก <code>dialogs.js</code> (คุม <code>showMessageDialog</code>, <code>showChangeDialog</code>, <code>showClashDialog</code> และห่อเป็น <code>Promise</code>)<br>2) แยก <code>student-actions.js</code> (รวม <code>handleSelect</code>, <code>handleRemove</code>, <code>handleChange</code>)<br>3) ยุบฟังก์ชันสร้างแถว <code>createScheduleRow</code> + <code>createTeachingScheduleRow</code> ให้ใช้ Column Config Array + loop (เหมือน <code>timetable-renderer.js</code>)<br>4) ใช้ <b>Event Delegation</b> บน <code>&lt;tbody&gt;</code> แทนผูก <code>addEventListener</code> ทุกปุ่ม<br>ทั้งหมดนี้แก้เฉพาะโครงสร้าง JS ภายใน ไม่เปลี่ยน HTML <code>data-testid</code> หรือ HTTP contract → Playwright ผ่านเหมือนเดิม 100%',
+          kw: '🎯 คีย์เวิร์ด: Modularization · Promise-based Dialog · Table Config + Loop · Event Delegation',
+          trap: '⚠️ กับดัก: อย่าลืมย้ำว่าการ Refactor ที่ดีต้องไม่เปลี่ยน Public Contract (DOM testid + API request/response)!'
+        },
+        {
+          q: '🔥 จี้ต่อชั้น 4 (What-if): “ในหน้า <code>my-schedule-main.js</code> มีโค้ด <code>refreshSelections</code> เขียนซ้ำอยู่ 3 ที่ (ใน 409 ของ Select, 404 ของ Remove, 404 ของ Change) ถ้าดึงออกมาเป็นฟังก์ชันกลาง 1 ตัว ต้องระวังอะไรบ้าง?”',
+          a: 'สามารถดึงออกมาเป็น <code>async function syncSelections()</code> ไว้ใน scope ของ <code>initMySchedule()</code> ตัวเดียวได้เลย เพราะทั้ง 3 ที่ทำเหมือนกันเป๊ะ: <code>selections = await fetchStudentSelections(studentId); sessionsCache.clear(); renderStudentTables(...);</code> พร้อม <code>catch</code> ตรวจ 401/403 → <code>showSessionModal()</code> หรือ error อื่น → <code>showMessageDialog(...)</code><br><b>สิ่งที่ต้องระวัง:</b> ตัวแปร <code>schedules</code> และ <code>selections</code> อยู่ใน closure ของ <code>initMySchedule()</code> จึงต้องมั่นใจว่า <code>syncSelections</code> อัปเดตตัวแปร <code>selections</code> ตัวเดียวกัน (ไม่ประกาศ <code>let selections</code> บังชื่อ) และต้อง handle error 401/403 ครบทุกที่เหมือนเดิม',
+          kw: '🎯 คีย์เวิร์ด: DRY Principle · Closure scope · Centralized error handling',
+          trap: '⚠️ กับดัก: การชี้จุดโค้ดซ้ำในไฟล์ตัวเองได้ (เช่น <code>refreshSelections</code> 3 ที่) แสดงว่าเราอ่านและเข้าใจโค้ดทุกบรรทัดจริง ๆ!'
+        }
+      ]
+    }
+  ];
+
+  // Render Interactive Drill-Down Oral Defense
+  const drillRoot = document.getElementById('drill-root');
+  const drillStat = document.getElementById('drill-stat');
+  const LEVEL_NAMES = [
+    'ชั้น 1 · คำถามเปิด (พื้นฐาน)',
+    'ชั้น 2 · จี้ลึกเข้าโค้ด (Why &amp; How)',
+    'ชั้น 3 · จี้ Edge Case &amp; กับดัก',
+    'ชั้น 4 · จี้ระดับลึก (What-if &amp; Architecture)'
+  ];
+
+  const openedAnswers = new Set(); // "di-li"
+
+  function updateDrillStat() {
+    const total = DRILLS.reduce((s, d) => s + d.levels.length, 0);
+    drillStat.textContent = `เปิดอ่านแนวคำตอบแล้ว ${openedAnswers.size} / ${total} คำถาม`;
+  }
+
+  function buildDrills() {
+    drillRoot.innerHTML = '';
+    DRILLS.forEach((d, di) => {
+      const card = document.createElement('div');
+      card.className = 'drill-card';
+      const badges = d.badges.map((b, i) => `<span class="badge ${i === 0 ? 'fe' : 'gray'}">${b}</span>`).join(' ');
+
+      const levelsHtml = d.levels.map((lv, li) => `
+        <div class="drill-lvl l${li + 1} ${li > 0 ? 'hidden' : ''}" data-di="${di}" data-li="${li}">
+          <div class="drill-tag">${LEVEL_NAMES[li]}</div>
+          <div class="drill-q">${lv.q}</div>
+          <div class="drill-actions">
+            <button type="button" class="btn" data-toggle-ans="${di}-${li}">💡 ดูแนวคำตอบ</button>
+            ${li < d.levels.length - 1 ? `<button type="button" class="btn primary" data-next-lvl="${di}-${li + 1}" style="display:none">🔥 โดนอาจารย์จี้ต่อ (ชั้น ${li + 2}) →</button>` : '<span class="badge ok" data-done-badge style="display:none">🏆 ผ่านครบ 4 ชั้นชุดนี้แล้ว!</span>'}
+          </div>
+          <div class="drill-ans" id="ans-${di}-${li}">
+            <div>${lv.a}</div>
+            <div class="drill-kw">${lv.kw}</div>
+            <div class="drill-trap">${lv.trap}</div>
+          </div>
+        </div>
+      `).join('');
+
+      card.innerHTML = `
+        <div class="drill-head">
+          <h3>${d.title}</h3>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+            ${badges}
+            <button type="button" class="btn" data-open-set="${di}" style="padding:4px 11px;font-size:12.5px">เปิดครบ 4 ชั้น</button>
+          </div>
+        </div>
+        <div class="drill-body">${levelsHtml}</div>`;
+      drillRoot.appendChild(card);
+    });
+
+    drillRoot.querySelectorAll('[data-toggle-ans]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.dataset.toggleAns;
+        const ans = document.getElementById(`ans-${key}`);
+        const isOpen = ans.classList.toggle('show');
+        btn.textContent = isOpen ? 'ซ่อนแนวคำตอบ' : '💡 ดูแนวคำตอบ';
+        const lvlBox = btn.closest('.drill-lvl');
+        const nextBtn = lvlBox.querySelector('[data-next-lvl]');
+        const doneBadge = lvlBox.querySelector('[data-done-badge]');
+        if (isOpen) {
+          openedAnswers.add(key);
+          if (nextBtn) nextBtn.style.display = 'inline-flex';
+          if (doneBadge) doneBadge.style.display = 'inline-flex';
+        }
+        updateDrillStat();
+      });
+    });
+
+    drillRoot.querySelectorAll('[data-next-lvl]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const [di, li] = btn.dataset.nextLvl.split('-');
+        const nextBox = drillRoot.querySelector(`.drill-lvl[data-di="${di}"][data-li="${li}"]`);
+        if (nextBox) {
+          nextBox.classList.remove('hidden');
+          btn.style.display = 'none';
+          nextBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    });
+
+    drillRoot.querySelectorAll('[data-open-set]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const di = btn.dataset.openSet;
+        drillRoot.querySelectorAll(`.drill-lvl[data-di="${di}"]`).forEach((box, li) => {
+          box.classList.remove('hidden');
+          const key = `${di}-${li}`;
+          const ans = document.getElementById(`ans-${key}`);
+          if (ans) ans.classList.add('show');
+          const tbtn = box.querySelector('[data-toggle-ans]');
+          if (tbtn) tbtn.textContent = 'ซ่อนแนวคำตอบ';
+          const nbtn = box.querySelector('[data-next-lvl]');
+          if (nbtn) nbtn.style.display = 'none';
+          const db = box.querySelector('[data-done-badge]');
+          if (db) db.style.display = 'inline-flex';
+          openedAnswers.add(key);
+        });
+        updateDrillStat();
+      });
+    });
+
+    updateDrillStat();
+  }
+
+  document.getElementById('drill-expand-all').addEventListener('click', () => {
+    drillRoot.querySelectorAll('[data-open-set]').forEach(b => b.click());
+  });
+  document.getElementById('drill-collapse-all').addEventListener('click', () => {
+    openedAnswers.clear();
+    buildDrills();
+  });
+
+  buildDrills();
+
+  // ==========================================================
+  // PART 2: 25 Multiple-Choice Questions (Sprint 2)
+  // ==========================================================
   const QUESTIONS = [
+    // --- PBI 3 (5) ---
     {
       cat: 'pbi3', pbi: 'PBI 3', file: 'frontend/index.html',
       q: 'ตามเงื่อนไขของ PBI3 (SIGN-IN) หน้าแรก (index.html) ควรติดต่อกับ Keycloak เมื่อไหร่?',
@@ -227,7 +647,7 @@
         'ส่ง username/password จากฟอร์มใน index.html ไปให้ Backend ตรวจกับ Keycloak'
       ],
       ans: 1,
-      exp: 'PBI3 ระบุชัดว่า “The home page never contacts Keycloak: PBI1–2 unchanged.” เพื่อไม่ให้หน้า Guest พังหรือช้าจากการเรียก auth server — การเรียก <code>keycloak.init()</code> เกิดขึ้นเฉพาะที่หน้า <code>my-schedule.html</code> เท่านั้น'
+      exp: 'PBI3 ระบุชัดว่า “The home page never contacts Keycloak: PBI1–2 unchanged.” การเรียก <code>keycloak.init()</code> เกิดขึ้นเฉพาะที่หน้า <code>my-schedule.html</code> เท่านั้น'
     },
     {
       cat: 'pbi3', pbi: 'PBI 3', file: 'frontend/js/auth.js',
@@ -239,7 +659,7 @@
         'เพราะโหมด PKCE S256 ไม่รองรับ iframe'
       ],
       ans: 1,
-      exp: 'เบราว์เซอร์สมัยใหม่ (Chrome/Safari/Firefox) บล็อก third-party cookie ทำให้ login-status iframe ของ <code>keycloak-js</code> ทำงานผิดพลาดหรือค้างได้ จึงต้องปิดด้วย <code>checkLoginIframe: false</code> ส่วน <code>pkceMethod: "S256"</code> เป็นข้อบังคับของ Keycloak realm <code>itb-csv</code>'
+      exp: 'เบราว์เซอร์ยุคใหม่บล็อก third-party cookie ทำให้ login-status iframe ของ <code>keycloak-js</code> ค้างหรือทำงานพลาด จึงต้องปิดด้วย <code>checkLoginIframe: false</code>'
     },
     {
       cat: 'pbi3', pbi: 'PBI 3', file: 'frontend/js/auth.js',
@@ -251,7 +671,7 @@
         't.email และ t.groups'
       ],
       ans: 2,
-      exp: 'ใน <code>auth.js</code>: <code>username: t.preferred_username</code> (ของนักศึกษาคือรหัส 11 หลัก เช่น <code>68504504010</code>), <code>name: t.name</code> (ชื่อเต็ม) และ <code>roles: t.realm_access?.roles ?? []</code>'
+      exp: 'ใน <code>auth.js</code>: <code>username: t.preferred_username</code>, <code>name: t.name</code> และ <code>roles: t.realm_access?.roles ?? []</code>'
     },
     {
       cat: 'pbi3', pbi: 'PBI 3', file: 'frontend/js/auth.js',
@@ -263,8 +683,22 @@
         'เพื่อบังคับให้เบราว์เซอร์ล้าง cache ของไฟล์ CSS'
       ],
       ans: 1,
-      exp: '<code>keycloak.logout(...)</code> จะจบ session บน Keycloak ด้วย แล้ว redirect กลับมาที่ <code>./</code> ของโฟลเดอร์ปัจจุบัน (ซึ่งคือ <code>index.html</code>) ทำให้ใช้ได้ทั้ง <code>http://localhost:5173/</code> และ <code>https://bscit.sit.kmutt.ac.th/intproj26/&lt;TEAM-PATH&gt;/</code>'
+      exp: '<code>new URL("./", location.href).href</code> จะถอยจาก <code>my-schedule.html</code> ไปโฟลเดอร์เดียวกัน ทำให้ใช้ได้ทั้งบนเครื่องและบน subfolder ของ VM จริง'
     },
+    {
+      cat: 'pbi3', pbi: 'PBI 3', file: 'frontend/js/my-schedule-main.js',
+      q: 'ทำไมปุ่ม <button id="sign-out-btn" disabled> ใน my-schedule.html ถึงถูกตั้ง disabled ไว้ก่อน แล้วค่อยปลดล็อกเป็น false ใน my-schedule-main.js?',
+      opts: [
+        'เพื่อซ่อนปุ่มไม่ให้นักศึกษาเห็น',
+        'เพื่อป้องกันผู้ใช้กด Sign Out ก่อนที่ await requireSignIn() จะ init Keycloak เสร็จสมบูรณ์',
+        'เพราะเบราว์เซอร์ไม่อนุญาตให้ปุ่มเปิดใช้งานก่อนโหลด CSS',
+        'เพื่อรอให้ตาราง Courses to Choose โหลดเสร็จก่อน'
+      ],
+      ans: 1,
+      exp: 'ถ้าผู้ใช้กด Sign Out ระหว่างที่ <code>keycloak.init()</code> ยังทำงานไม่จบ การเรียก <code>keycloak.logout()</code> อาจล้มเหลว จึงรอให้ <code>await requireSignIn()</code> ผ่านก่อนแล้วค่อยผูก click event และตั้ง <code>signOutBtn.disabled = false</code>'
+    },
+
+    // --- PBI 4 (6) ---
     {
       cat: 'pbi4', pbi: 'PBI 4', file: 'frontend/js/my-schedule-main.js',
       q: 'เมื่อนักศึกษาล็อกอินเข้า my-schedule.html แล้ว API GET /api/v1/students/{id} ตอบกลับมาเป็น 404 (ไม่ใช่เด็ก BSc.IT) หน้าเว็บต้องทำอย่างไร?',
@@ -275,7 +709,7 @@
         'เด้งกลับไปหน้า Keycloak เพื่อล็อกอินใหม่ทันที'
       ],
       ans: 1,
-      exp: 'ใน <code>my-schedule-api.js</code> เมื่อ status เป็น 404 จะคืน <code>null</code> → <code>my-schedule-main.js</code> เช็ค <code>if (!profile) { showNotStudentMessage(); return false; }</code> จึงแสดงข้อความ “Your account is not a student of the BSc.IT program.” โดยไม่แสดงตารางและไม่ยิง API อีก 2 เส้น'
+      exp: '<code>fetchStudentProfile()</code> คืน <code>null</code> เมื่อได้ 404 → <code>my-schedule-main.js</code> เรียก <code>showNotStudentMessage()</code> แล้ว <code>return false</code> ไม่ยิงอีก 2 เส้น'
     },
     {
       cat: 'pbi4', pbi: 'PBI 4', file: 'frontend/js/my-schedule-main.js',
@@ -287,7 +721,7 @@
         'ยิง GET /api/v1/schedules ของ PBI1 แล้วมากรองเองใน JS'
       ],
       ans: 1,
-      exp: 'ทั้ง 2 เส้นนี้ไม่ขึ้นต่อกัน (รู้ <code>yearLevel</code>, <code>studentGroup</code> และ <code>studentId</code> ครบแล้ว) การใช้ <code>Promise.all</code> จึงยิงขนานกัน ลดเวลารอโหลดหน้า และยิงแค่อย่างละ 1 ครั้งต่อ page load ตามเงื่อนไข PBI4'
+      exp: 'ทั้ง 2 เส้นไม่ขึ้นต่อกันแล้ว การใช้ <code>Promise.all</code> จึงยิงขนานกัน ลดเวลารอ และเป็นแบบ fail-fast ถ้าเส้นใดพังจะไม่วาดข้อมูลครึ่ง ๆ กลาง ๆ'
     },
     {
       cat: 'pbi4', pbi: 'PBI 4', file: 'frontend/js/components/my-schedule-renderer.js',
@@ -299,7 +733,7 @@
         '"Year2·GroupA" (ไม่มีเว้นวรรค)'
       ],
       ans: 2,
-      exp: 'ใน <code>renderStudentHeader()</code> เขียนว่า <code>`Year ${profile.yearLevel} \\u00B7 Group ${profile.studentGroup}`</code> — ใช้ Middle Dot (<code>U+00B7</code>) พร้อมเว้นวรรคซ้าย-ขวา ซึ่ง Playwright ตรวจข้อความนี้แบบเป๊ะ ๆ!'
+      exp: 'ใน <code>renderStudentHeader()</code> เขียนว่า <code>`Year ${profile.yearLevel} \\u00B7 Group ${profile.studentGroup}`</code> — ใช้ Middle Dot (<code>U+00B7</code>) พร้อมเว้นวรรคซ้าย-ขวา'
     },
     {
       cat: 'pbi4', pbi: 'PBI 4', file: 'frontend/js/components/my-schedule-renderer.js',
@@ -311,8 +745,34 @@
         'Disable ปุ่ม Select ทุกปุ่มไว้'
       ],
       ans: 2,
-      exp: 'ใน <code>my-schedule-renderer.js</code>: <code>if (courseOptionRows.length === 0) { courseOptionsSec.style.display = "none"; }</code> — ตรงกับ PBI4: “Hidden when it has no row.” (ต่างจาก My Schedule ที่มีข้อความ <code>my-schedule-empty</code> เมื่อว่าง)'
+      exp: '<code>courseOptionsSec.style.display = "none";</code> — ตรงกับ PBI4: “Hidden when it has no row.” (ต่างจาก My Schedule ที่มีข้อความ <code>my-schedule-empty</code>)'
     },
+    {
+      cat: 'pbi4', pbi: 'PBI 4', file: 'frontend/js/my-schedule-main.js',
+      q: 'ทำไมใน commit e24cf7d ทีมถึงย้ายการเรียก renderStudentHeader(user.name, studentProfile) ไปไว้ "หลัง" โหลด schedules และ selections เสร็จ?',
+      opts: [
+        'เพราะ user.name มาจาก API schedules',
+        'เพื่อไม่ให้โปรไฟล์ Year · Group โผล่ค้างอยู่บนหน้าเว็บในกรณีที่การโหลด schedules หรือ selections เกิด Error (500)',
+        'เพราะ renderStudentHeader ต้องอ่านจำนวนแถวในตารางก่อน',
+        'เพื่อให้ปุ่ม Sign Out หายไปหลังโหลดเสร็จ'
+      ],
+      ans: 1,
+      exp: 'ตอนต้นแสดงเฉพาะ <code>user.name</code> (ส่ง <code>null</code> เป็น profile) แล้วรอให้ทั้ง <code>schedules</code> และ <code>selections</code> โหลดผ่านครบค่อยโชว์ <code>Year · Group</code> เพื่อไม่ให้หน้าเว็บค้างแบบครึ่ง ๆ กลาง ๆ ถ้าเส้น 2 หรือ 3 พัง'
+    },
+    {
+      cat: 'pbi4', pbi: 'PBI 4', file: 'frontend/js/components/my-schedule-renderer.js',
+      q: 'ใน Sprint 2 (ก่อนมี PBI8) หากผู้ใช้ที่ล็อกอินมี role เป็น "lecturer" หน้า my-schedule.html ต้องทำอย่างไร?',
+      opts: [
+        'ยิง GET /api/v1/students/{username} เพื่อให้ได้ 404 not-student',
+        'แสดงข้อความ “The lecturer view is coming soon” โดยไม่แสดงโปรไฟล์ ไม่มีตาราง และไม่ยิง API ของ PBI4 เลย',
+        'แสดงตารางทั้งหมดของหน้า Guest แทน',
+        'บังคับ Sign Out ทันที'
+      ],
+      ans: 1,
+      exp: 'สเปก PBI4 กำหนดชัดว่า lecturer ใน Sprint 2 แสดง <code>lecturer-message</code> โดย <b>ห้ามยิง API เส้นใดเลยของ PBI4</b> (ต่อมาใน Sprint 3 PBI8 จึงเปลี่ยนมาแสดงตาราง <code>Teaching Schedule</code> แทน)'
+    },
+
+    // --- PBI 5 (4) ---
     {
       cat: 'pbi5', pbi: 'PBI 5', file: 'frontend/js/my-schedule-main.js',
       q: 'เมื่อนักศึกษากดปุ่ม "Select" ในตาราง Courses to Choose และ POST .../selections ตอบกลับ 201 Created โค้ด Frontend ทำอย่างไร?',
@@ -323,7 +783,7 @@
         'ย้าย DOM element <tr> ด้วยมือโดยไม่อัปเดต array selections'
       ],
       ans: 1,
-      exp: 'PBI5 กำหนดชัดว่า Select <b>ไม่มี confirmation dialog</b> และเมื่อได้ 201 ต้องอัปเดตทั้ง 2 ตารางจากข้อมูลที่มีอยู่แล้วโดยไม่ reload และไม่ยิง GET schedules/selections ซ้ำ — การแก้ <code>selections</code> แล้วสั่ง <code>renderStudentTables()</code> จะรักษาลำดับ PBI1 อัตโนมัติเพราะ <code>schedules</code> เรียงมาแล้ว!'
+      exp: 'Select ไม่มี confirmation dialog และเมื่อได้ 201 ต้องอัปเดต state ใน memory แล้ววาดใหม่โดยไม่ reload และไม่ยิง GET ซ้ำ (TR-06)'
     },
     {
       cat: 'pbi5', pbi: 'PBI 5', file: 'frontend/js/my-schedule-main.js',
@@ -335,8 +795,34 @@
         'ลบรายการทั้งหมดของนักศึกษาด้วย DELETE .../selections'
       ],
       ans: 1,
-      exp: 'การได้ 409 already-selected แปลว่าหน้าจอเราล้าสมัยไม่ตรงกับ DB แล้ว จึงต้องซิงก์ <code>selections</code> ใหม่หลังปิด dialog (สังเกตว่าใน <code>showMessageDialog</code> ทีมส่ง <code>refreshSelections</code> ให้ทั้ง <code>onClose</code> ตอนกด OK และ <code>onCancel</code> ตอนกด Esc!)'
+      exp: '409 แปลว่าหน้าจอล้าสมัยไม่ตรง DB → หลังปิด dialog (ทั้ง OK และ Esc) ต้องยิง <code>fetchStudentSelections</code> มาซิงก์ใหม่โดยไม่ต้องยิง <code>fetchYearSchedules</code>'
     },
+    {
+      cat: 'pbi5', pbi: 'PBI 5', file: 'frontend/js/components/my-schedule-renderer.js',
+      q: 'หลังกด Select แล้วทำไมเราไม่จำเป็นต้องเขียนฟังก์ชัน sort() ใหม่บน Frontend แถวที่ย้ายเข้า My Schedule ก็ยังเรียงตามลำดับ PBI1 ถูกต้อง?',
+      opts: [
+        'เพราะเบราว์เซอร์เรียงแถว <tr> ในตารางให้เองตามตัวอักษร',
+        'เพราะ array schedules ต้นทางเรียงตาม PBI1 มาจาก Backend แล้ว และ Array.filter() รักษาลำดับเดิมเสมอ',
+        'เพราะ selections.push() แทรกตามลำดับ courseId อัตโนมัติ',
+        'เพราะ CSS flexbox เรียงลำดับแถวให้'
+      ],
+      ans: 1,
+      exp: 'นี่คือความสวยงามของ Derived View: <code>schedules</code> เรียง 6 ขั้นมาจาก Backend แล้ว พอเราใช้ <code>schedules.filter(...)</code> สร้างแถวของทั้ง 2 ตาราง ลำดับ PBI1 จะคงอยู่เสมอโดยอัตโนมัติ!'
+    },
+    {
+      cat: 'pbi5', pbi: 'PBI 5', file: 'frontend/js/my-schedule-api.js',
+      q: 'ทำไม selectCourseSection() ถึง return { status: response.status, data: null } เมื่อเจอ 409 หรือ 404 แทนที่จะ throw Error เหมือน fetchYearSchedules()?',
+      opts: [
+        'เพราะ JavaScript ห้าม throw Error ในฟังก์ชันที่ยิง POST',
+        'เพราะ 409 และ 404 เป็นผลลัพธ์ทางธุรกิจที่หน้าเว็บต้องแยกแสดง Dialog ต่างกัน จึงส่ง status กลับไปให้ if/else จัดการได้ชัดกว่า',
+        'เพราะ fetch() ไม่สามารถใช้ try/catch ได้กับ POST',
+        'เพื่อไม่ให้สถานะ 201 ถูกส่งกลับมา'
+      ],
+      ans: 1,
+      exp: 'การแยก Expected HTTP Status (409/404/400) ด้วยการ return object ทำให้ <code>handleSelect()</code> แยกข้อความแต่ละกรณีได้สะอาด และเก็บ <code>catch</code> ไว้สำหรับ Network failure จริง ๆ'
+    },
+
+    // --- PBI 6 (4) ---
     {
       cat: 'pbi6', pbi: 'PBI 6', file: 'frontend/js/components/my-schedule-renderer.js',
       q: 'ปุ่ม "Remove" ในตาราง My Schedule ต้องแสดงที่แถวไหนบ้าง?',
@@ -347,7 +833,7 @@
         'แสดงในตาราง Courses to Choose'
       ],
       ans: 1,
-      exp: 'ดูใน <code>my-schedule-renderer.js</code>: <code>const isSelectedByStudent = !item.fixed && selections.some(...)</code> — ทั้งวิชา ELECTIVE และวิชา CORE ที่มีหลาย section (ซึ่ง <code>fixed === false</code> เช่น LNG202) ที่นักศึกษาเลือกเองจะมีปุ่ม Remove ส่วนแถว <code>fixed: true</code> จะไม่มีปุ่มใด ๆ'
+      exp: '<code>const isSelectedByStudent = !item.fixed && selections.some(...)</code> — ทั้ง ELECTIVE และ CORE หลาย section ที่นักศึกษาเลือกเองจะมีปุ่ม Remove ส่วนแถว <code>fixed: true</code> ห้ามมี'
     },
     {
       cat: 'pbi6', pbi: 'PBI 6', file: 'frontend/js/my-schedule-main.js',
@@ -359,8 +845,34 @@
         'ใช้ window.confirm("Remove INT221 UI Design section 1?")'
       ],
       ans: 1,
-      exp: 'ใน <code>handleRemove()</code>: <code>const message = `Remove ${item.course.code} ${item.course.title} section ${item.section}?`;</code> แล้วเปิด <code>&lt;dialog id="message-dialog"&gt;</code> ในโหมด confirm (<code>isConfirm = true</code>) ซึ่งโชว์ปุ่ม <b>Remove</b> กับ <b>Cancel</b>'
+      exp: '<code>`Remove ${item.course.code} ${item.course.title} section ${item.section}?`</code> ใน <code>&lt;dialog id="message-dialog"&gt;</code> โหมด confirm (ปุ่ม Remove / Cancel)'
     },
+    {
+      cat: 'pbi6', pbi: 'PBI 6', file: 'frontend/js/my-schedule-api.js',
+      q: 'เมื่อ removeCourseSelection() ยิง DELETE .../selections/{courseId} สำเร็จ (204 No Content) ทำไมโค้ดถึงห้ามเรียก await response.json()?',
+      opts: [
+        'เพราะคำสั่ง DELETE ใช้ async/await ไม่ได้',
+        'เพราะ HTTP 204 No Content ไม่มี body ส่งกลับมา การเรียก response.json() จะ throw SyntaxError ทันที',
+        'เพราะ Backend ส่งกลับมาเป็น XML',
+        'เพราะจะทำให้ข้อมูลใน MySQL ถูกลบซ้ำ'
+      ],
+      ans: 1,
+      exp: 'HTTP 204 มีความหมายว่า “สำเร็จและไม่มีเนื้อหาตอบกลับ” ใน <code>removeCourseSelection()</code> จึงคืนแค่ <code>{ status: response.status }</code> โดยไม่ parse JSON'
+    },
+    {
+      cat: 'pbi6', pbi: 'PBI 6', file: 'frontend/js/components/my-schedule-renderer.js',
+      q: 'ใน showMessageDialog() ทำไมทีมผูก event ด้วย confirmBtn.onclick = ... แทน confirmBtn.addEventListener("click", ...)?',
+      opts: [
+        'เพราะปุ่มใน <dialog> ไม่รองรับ addEventListener',
+        'เพื่อเขียนทับ handler เก่าทุกครั้งที่เปิด dialog ซ้ำ ป้องกันไม่ให้ listener สะสมแล้วยิง DELETE ซ้ำหลายรอบ',
+        'เพราะ onclick ทำงานแบบ asynchronous อัตโนมัติ',
+        'เพราะ addEventListener ใช้ไม่ได้กับ ES Modules'
+      ],
+      ans: 1,
+      exp: 'เนื่องจาก <code>message-dialog</code> เป็น element เดิมที่ใช้ซ้ำ การใช้ <code>.onclick = ...</code> จะแทนที่ callback รอบเก่าทันที ไม่เกิด listener leak'
+    },
+
+    // --- PBI 7, API & Edge (6) ---
     {
       cat: 'pbi7', pbi: 'PBI 7', file: 'frontend/js/components/my-schedule-renderer.js',
       q: 'เงื่อนไขใดที่ทำให้แถวใน My Schedule แสดงปุ่ม "Change" (PBI7)?',
@@ -371,7 +883,7 @@
         'แสดงเฉพาะเมื่อตาราง Courses to Choose ยังมีวิชาเหลืออยู่'
       ],
       ans: 1,
-      exp: 'ใน <code>my-schedule-renderer.js</code> ใช้ <code>new Set(...)</code> นับจำนวน section ที่ไม่ซ้ำของ <code>item.course.id</code> ที่ <code>!schedule.fixed</code> — ถ้า <code>availableSections.length > 1</code> จึงสร้างปุ่ม Change (รองรับทั้ง CORE หลาย sec และ ELECTIVE หลาย sec อย่าง INT531 ใน TC-PBI7-12 ด้วย!)'
+      exp: 'ใช้ <code>new Set(...)</code> นับจำนวน section ไม่ซ้ำของ <code>item.course.id</code> ที่ <code>!schedule.fixed</code> — ถ้ามากกว่า 1 จึงแสดงปุ่ม Change (รวมทั้ง Elective 2 section ด้วย)'
     },
     {
       cat: 'pbi7', pbi: 'PBI 7', file: 'frontend/js/my-schedule-main.js',
@@ -383,7 +895,31 @@
         'เพื่อให้ปุ่ม Change ถูก disable อัตโนมัติ'
       ],
       ans: 1,
-      exp: '1 section อาจเรียน 2 วัน (เช่น จันทร์ + พฤหัส) ทำให้ใน <code>schedules</code> มี 2 แถวที่มี <code>section</code> เลขเดียวกัน การใช้ <code>Map</code> ที่มี key เป็น <code>Number(schedule.section)</code> จะยุบให้เหลือ 1 ตัวเลือกต่อ 1 section เพื่อไม่ให้ radio ซ้ำ'
+      exp: '1 section ที่เรียน 2 วันจะมี 2 แถวใน <code>schedules</code> การใช้ <code>Map</code> key ด้วย <code>Number(schedule.section)</code> จะ deduplicate เหลือ 1 ตัวเลือกต่อ 1 section'
+    },
+    {
+      cat: 'pbi7', pbi: 'PBI 7', file: 'frontend/js/my-schedule-main.js',
+      q: 'หลัง PUT .../selections/{courseId} ตอบ 200 OK โค้ดอัปเดต state ด้วย selections = selections.map(sel => sel.courseId === courseId ? { ...sel, section: newSection } : sel) ข้อใดกล่าวถูกต้อง?',
+      opts: [
+        'เป็นการสร้าง array ใหม่แบบ immutable และเปลี่ยนเฉพาะ section ของ courseId ที่ตรงกัน ทำให้ re-render แถวใหม่พร้อมปุ่ม Change/Remove ที่ถือ section ใหม่ทันที',
+        'เป็นการลบทุกวิชาใน selections ออกหมด',
+        'เป็นการยิง GET selections ใหม่จากเซิร์ฟเวอร์',
+        'เป็นการเปลี่ยนชื่อวิชาใน schedules ด้วย'
+      ],
+      ans: 0,
+      exp: 'อัปเดตเฉพาะ <code>section</code> ของวิชานั้นแล้วสั่ง <code>renderStudentTables()</code> → แถวใหม่ถูกวาดตามลำดับ PBI1 และปุ่ม Change/Remove บนแถวใหม่จะถือ <code>item.section</code> ใหม่ (ผ่าน TC-PBI7-7!)'
+    },
+    {
+      cat: 'pbi7', pbi: 'PBI 7', file: 'frontend/js/components/my-schedule-renderer.js',
+      q: 'ใน showChangeDialog() ทำไมต้องแปลงค่า radio ด้วย Number(selected.value) ก่อนส่งให้ onConfirm(newSection)?',
+      opts: [
+        'เพราะ HTML input.value เป็น string เสมอ ถ้าไม่แปลงเป็น Number จะเทียบ === กับ item.section (number) ไม่ตรง และ Backend จะปฏิเสธ 400',
+        'เพราะ radio button ไม่ส่งค่ากลับมาถ้าไม่ครอบ Number()',
+        'เพราะ JSON.stringify ไม่รองรับ string',
+        'เพื่อให้เรียงตัวเลขจากมากไปน้อย'
+      ],
+      ans: 0,
+      exp: 'ค่า <code>selected.value</code> จาก DOM เป็น string (เช่น <code>"10"</code>) — ถ้าไม่ครอบ <code>Number()</code> จะพังทั้ง strict equality <code>"10" === 10</code> บน FE และ type validation บน BE!'
     },
     {
       cat: 'pbi7', pbi: 'Infra / S2', file: 'frontend/serve.json',
@@ -395,12 +931,24 @@
         'ปิดการ cache ไฟล์ JavaScript ในเบราว์เซอร์'
       ],
       ans: 1,
-      exp: '<code>npx serve</code> มีพฤติกรรมเริ่มต้น <code>cleanUrls: true</code> ที่จะ redirect <code>/my-schedule.html</code> → <code>/my-schedule</code> อัตโนมัติ การตั้ง <code>"cleanUrls": false</code> ทำให้ URL คงเป็น <code>my-schedule.html</code> ตามที่ Keycloak และ UI Contract กำหนด'
+      exp: '<code>npx serve</code> มี default <code>cleanUrls: true</code> ที่จะตัด <code>.html</code> ออก การตั้งเป็น <code>false</code> ทำให้ URL คงเป็น <code>my-schedule.html</code> ตรงกับ Keycloak และ test'
+    },
+    {
+      cat: 'pbi7', pbi: 'Lifecycle / S2', file: 'frontend/js/my-schedule-main.js',
+      q: 'บรรทัดล่างสุดของ my-schedule-main.js เขียน if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", initMySchedule); } else { initMySchedule(); } เพื่ออะไร?',
+      opts: [
+        'เพื่อให้ initMySchedule() รันซ้ำ 2 รอบเสมอ',
+        'เพราะ <script type="module"> เป็น deferred อยู่แล้ว ถ้า DOMContentLoaded ยิงผ่านไปแล้วตอน module โหลดเสร็จ จะได้เรียก initMySchedule() ทันทีไม่ค้างหน้าขาว',
+        'เพื่อรอให้รูปภาพทั้งหมดโหลดเสร็จก่อน',
+        'เพื่อปิดใช้งาน Keycloak ตอนโหลดหน้า'
+      ],
+      ans: 1,
+      exp: 'ES Module ทำงานแบบ deferred — ถ้าโหลดเสร็จหลัง <code>DOMContentLoaded</code> ผ่านไปแล้ว การผูก listener อย่างเดียวจะไม่ถูกเรียก การเช็ค <code>document.readyState</code> จึงปลอดภัย 100%'
     }
   ];
 
   const LABELS = ['A', 'B', 'C', 'D'];
-  const state = new Map(); // idx -> chosen option index
+  const state = new Map();
   let activeCat = 'all';
 
   const root = document.getElementById('quiz-root');
@@ -480,15 +1028,9 @@
     });
   });
 
-  document.getElementById('q-reset').addEventListener('click', () => {
-    state.clear();
-    render();
-  });
-
+  document.getElementById('q-reset').addEventListener('click', () => { state.clear(); render(); });
   document.getElementById('q-reveal').addEventListener('click', () => {
-    QUESTIONS.forEach((q, i) => {
-      if (!state.has(i)) state.set(i, q.ans);
-    });
+    QUESTIONS.forEach((q, i) => { if (!state.has(i)) state.set(i, q.ans); });
     render();
   });
 
